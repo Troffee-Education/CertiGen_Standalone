@@ -1,0 +1,77 @@
+@import "tailwindcss";
+
+:root {
+  --background: #f9fafb;
+  --foreground: #101828;
+}
+
+/* ─── Design tokens used by the base Button/Input components ─────────────────── */
+
+/* Surface "primary" resolves to white (bg-primary, ring-primary); text-primary is
+   overridden below since it shares the same token name. */
+@theme {
+  --color-primary: #ffffff;
+
+  --color-primary-50: #eef2ff;
+  --color-primary-100: #e0e7ff;
+  --color-primary-200: #c7d2fe;
+  --color-primary-300: #a5b4fc;
+  --color-primary-400: #818cf8;
+  --color-primary-500: #6366f1;
+  --color-primary-600: #4f46e5;
+  --color-primary-700: #4338ca;
+  --color-primary-800: #3730a3;
+  --color-primary-900: #312e81;
+
+  --color-brand: #4f46e5;
+  --color-brand-secondary: #4f46e5;
+  --color-brand-secondary_hover: #4338ca;
+  --color-brand-tertiary: #98a2b3;
+  --color-fg-brand-secondary_alt: #6366f1;
+
+  --color-error: #dc2626;
+  --color-error-solid: #dc2626;
+  --color-error-solid_hover: #b91c1c;
+  --color-error-subtle: #fee2e2;
+  --color-error-primary: #b42318;
+  --color-error-primary_hover: #912018;
+  --color-fg-error-secondary: #f04438;
+
+  --color-secondary: #344054;
+  --color-tertiary: #475467;
+  --color-tertiary_hover: #344054;
+  --color-quaternary: #98a2b3;
+  --color-placeholder: #98a2b3;
+  --color-fg-quaternary: #98a2b3;
+  --color-fg-quaternary_hover: #667085;
+  --color-border-primary: #d0d5dd;
+
+  --shadow-xs-skeuomorphic: inset 0 -1px 0 0 rgb(0 0 0 / 0.04), 0 1px 2px 0 rgb(16 24 40 / 0.05);
+}
+
+/* `text-primary` must be dark while `bg-primary` stays white (they share a token). */
+.text-primary {
+  color: #101828;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+@keyframes slide-in {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.animate-slide-in {
+  animation: slide-in 0.3s ease-out;
+}
