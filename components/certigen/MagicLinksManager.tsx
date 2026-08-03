@@ -39,13 +39,39 @@ type Notification = {
   magicUrl?: string;
 };
 
+type PublicSubmissionItem = {
+  id: string;
+  teacherName: string;
+  teacherEmail: string;
+  teacherPhone?: string;
+  teacherState?: string;
+  certificateCount: number;
+  hasDownloaded: boolean;
+  createdAt: string;
+  magicLinkId?: string;
+};
+
+const formatDate = (d: string) => {
+  if (!d) return "";
+  try {
+    return new Date(d).toLocaleDateString("en-MY", {
+      day: "numeric", month: "short", year: "numeric",
+    });
+  } catch {
+    return String(d);
+  }
+};
+
 const PAGE_SIZE = 20;
 
 export default function MagicLinksManager({ eventId, certificateType = "student" }: Props) {
   const teacherEvent = certificateType === "teacher";
   const inviteType = teacherEvent ? "self_serve_claim" : "teacher_bulk";
+  const [activeTab, setActiveTab] = useState<"magic_links" | "public_claims">("magic_links");
   const [links, setLinks] = useState<MagicLinkItem[]>([]);
+  const [publicSubmissions, setPublicSubmissions] = useState<PublicSubmissionItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingSubmissions, setLoadingSubmissions] = useState(true);
   const [email, setEmail] = useState("");
   const [sending, setSending] = useState(false);
   const [notif, setNotif] = useState<Notification | null>(null);
@@ -84,12 +110,29 @@ export default function MagicLinksManager({ eventId, certificateType = "student"
     }
   }, [eventId]);
 
+  const fetchPublicSubmissions = useCallback(async () => {
+    setLoadingSubmissions(true);
+    try {
+      const res = await adminFetch(`/api/events/${eventId}/submissions`);
+      if (res.ok) {
+        const data = await res.json();
+        const all: PublicSubmissionItem[] = data.submissions || [];
+        const publicOnly = all.filter((s) => !s.magicLinkId);
+        setPublicSubmissions(publicOnly);
+      }
+    } catch {
+      console.error("Failed to fetch public submissions");
+    } finally {
+      setLoadingSubmissions(false);
+    }
+  }, [eventId]);
+
   useEffect(() => {
     const initFetch = async () => {
-      await fetchLinks(1);
+      await Promise.all([fetchLinks(1), fetchPublicSubmissions()]);
     };
     initFetch();
-  }, [fetchLinks]);
+  }, [fetchLinks, fetchPublicSubmissions]);
 
   const handleSend = async (targetEmail?: string) => {
     const addr = (targetEmail || email).trim();
@@ -263,9 +306,16 @@ export default function MagicLinksManager({ eventId, certificateType = "student"
     );
   };
 
-  const formatDate = (d: string) => new Date(d).toLocaleDateString("en-MY", {
-    day: "numeric", month: "short", year: "numeric",
-  });
+  const exportPublicSubmissionsCsv = () => {
+    if (publicSubmissions.length === 0) return;
+    const headers = "Name,Email,Phone,State,Certificate Count,Downloaded,Created At\n";
+    const rows = publicSubmissions.map((s) =>
+      `"${(s.teacherName || "").replace(/"/g, '""')}","${s.teacherEmail || ""}","${s.teacherPhone || ""}","${s.teacherState || ""}",${s.certificateCount || 1},${s.hasDownloaded ? "Yes" : "No"},"${formatDate(s.createdAt)}"`
+    ).join("\n");
+    const blob = new Blob([headers + rows], { type: "text/csv;charset=utf-8;" });
+    saveAs(blob, `public-claims-${eventId}-${Date.now()}.csv`);
+    showNotif({ type: "success", message: "Public submissions exported to CSV." });
+  };
 
   return (
     <div className="space-y-8">
@@ -516,140 +566,228 @@ export default function MagicLinksManager({ eventId, certificateType = "student"
         </div>
       </div>
 
-      {/* Magic links list */}
+      {/* Submissions & Links Navigation */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-200">
-          <h2 className="text-lg font-semibold text-gray-900">
-            Generated Links
-            {!loading && <span className="text-gray-400 font-normal ml-2">({links.length})</span>}
-          </h2>
+        {/* Tab Headers */}
+        <div className="px-6 py-3 border-b border-gray-200 bg-gray-50 flex items-center justify-between flex-wrap gap-4">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setActiveTab("magic_links")}
+              className={`px-4 py-2 text-sm font-semibold rounded-lg transition-all ${
+                activeTab === "magic_links"
+                  ? "bg-white text-primary-600 shadow-sm border border-gray-200"
+                  : "text-gray-500 hover:text-gray-900"
+              }`}
+            >
+              Unique Magic Links ({links.length})
+            </button>
+            <button
+              onClick={() => setActiveTab("public_claims")}
+              className={`px-4 py-2 text-sm font-semibold rounded-lg transition-all ${
+                activeTab === "public_claims"
+                  ? "bg-white text-primary-600 shadow-sm border border-gray-200"
+                  : "text-gray-500 hover:text-gray-900"
+              }`}
+            >
+              Public Claim Submissions ({publicSubmissions.length})
+            </button>
+          </div>
+
+          {activeTab === "public_claims" && publicSubmissions.length > 0 && (
+            <Button color="secondary" size="sm" onClick={exportPublicSubmissionsCsv}>
+              <Download className="w-4 h-4 mr-2" />
+              Export Public Claims CSV
+            </Button>
+          )}
         </div>
 
-        {loading ? (
-          <ul className="divide-y divide-gray-200">
-            {[1, 2, 3].map((i) => (
-              <li key={i} className="px-6 py-4 animate-pulse">
-                <div className="flex items-center justify-between">
-                  <div className="space-y-2 flex-1">
-                    <div className="h-4 bg-gray-200 rounded w-48" />
-                    <div className="h-3 bg-gray-100 rounded w-64" />
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <div className="h-5 bg-gray-200 rounded-full w-16" />
-                    <div className="h-8 bg-gray-200 rounded-md w-20" />
-                  </div>
-                </div>
-              </li>
-            ))}
-          </ul>
-        ) : links.length === 0 ? (
-          <div className="text-center py-12 text-gray-500">
-            <ExternalLink className="w-8 h-8 mx-auto mb-3 text-gray-300" />
-            <p className="text-sm">No unique links generated yet.</p>
-          </div>
-        ) : (
+        {/* Tab Content: Unique Magic Links */}
+        {activeTab === "magic_links" && (
           <>
-            <ul className="divide-y divide-gray-200">
-              {links.map((link) => (
-                <li key={link.id} className="px-6 py-4 hover:bg-gray-50 transition-colors">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-4 min-w-0">
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium text-gray-900 truncate flex items-center gap-2">
-                          {link.teacherEmail}
-                          {link.type === "teacher_bulk" ? (
-                            <span className="text-[10px] uppercase font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-200">
-                              Student Bulk
-                            </span>
-                          ) : (
-                            <span className="text-[10px] uppercase font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded border border-purple-200">
-                              Single Claim
-                            </span>
-                          )}
-                        </p>
-                        <div className="flex items-center gap-3 mt-1 text-xs text-gray-500">
-                          <span>Created {formatDate(link.createdAt)}</span>
-                          <span>Expires {formatDate(link.expiresAt)}</span>
-                        </div>
+            {loading ? (
+              <ul className="divide-y divide-gray-200">
+                {[1, 2, 3].map((i) => (
+                  <li key={i} className="px-6 py-4 animate-pulse">
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-2 flex-1">
+                        <div className="h-4 bg-gray-200 rounded w-48" />
+                        <div className="h-3 bg-gray-100 rounded w-64" />
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <div className="h-5 bg-gray-200 rounded-full w-16" />
+                        <div className="h-8 bg-gray-200 rounded-md w-20" />
                       </div>
                     </div>
-                    <div className="flex items-center space-x-3 flex-shrink-0">
-                      {statusBadge(link.status)}
-                      {link.status === "submitted" && link.submission && (
-                        <span className="text-xs text-gray-500 whitespace-nowrap">
-                          {link.submission.certificateCount} certs
-                        </span>
-                      )}
-                      {link.submission?.hasDownloaded && (
-                        <span title="Downloaded"><CheckCircle className="w-4 h-4 text-green-500" /></span>
-                      )}
-                      {link.status === "pending" && (
-                        <Button
-                          color="tertiary-destructive"
-                          size="xs"
-                          onClick={() => handleRevoke(link.id)}
+                  </li>
+                ))}
+              </ul>
+            ) : links.length === 0 ? (
+              <div className="text-center py-12 text-gray-500">
+                <ExternalLink className="w-8 h-8 mx-auto mb-3 text-gray-300" />
+                <p className="text-sm">No unique links generated yet.</p>
+              </div>
+            ) : (
+              <>
+                <ul className="divide-y divide-gray-200">
+                  {links.map((link) => (
+                    <li key={link.id} className="px-6 py-4 hover:bg-gray-50 transition-colors">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-4 min-w-0">
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium text-gray-900 truncate flex items-center gap-2">
+                              {link.teacherEmail}
+                              {link.type === "teacher_bulk" ? (
+                                <span className="text-[10px] uppercase font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-200">
+                                  Student Bulk
+                                </span>
+                              ) : (
+                                <span className="text-[10px] uppercase font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded border border-purple-200">
+                                  Single Claim
+                                </span>
+                              )}
+                            </p>
+                            <div className="flex items-center gap-3 mt-1 text-xs text-gray-500">
+                              <span>Created {formatDate(link.createdAt)}</span>
+                              <span>Expires {formatDate(link.expiresAt)}</span>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-3 flex-shrink-0">
+                          {statusBadge(link.status)}
+                          {link.status === "submitted" && link.submission && (
+                            <span className="text-xs text-gray-500 whitespace-nowrap">
+                              {link.submission.certificateCount} certs
+                            </span>
+                          )}
+                          {link.submission?.hasDownloaded && (
+                            <span title="Downloaded"><CheckCircle className="w-4 h-4 text-green-500" /></span>
+                          )}
+                          {link.status === "pending" && (
+                            <Button
+                              color="tertiary-destructive"
+                              size="xs"
+                              onClick={() => handleRevoke(link.id)}
+                            >
+                              <Ban className="w-3.5 h-3.5 mr-1" />
+                              Revoke
+                            </Button>
+                          )}
+                          {(link.status === "revoked" || link.status === "expired") && (
+                            <Button
+                              color="secondary"
+                              size="xs"
+                              isDisabled={sending}
+                              onClick={() => handleSend(link.teacherEmail)}
+                            >
+                              <RefreshCw className="w-3.5 h-3.5 mr-1" />
+                              New Link
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+                {/* Pagination */}
+                {totalPages > 1 && (
+                  <div className="px-6 py-3 border-t border-gray-200 flex items-center justify-between">
+                    <span className="text-sm text-gray-500">
+                      Showing {(page - 1) * PAGE_SIZE + 1}&ndash;{Math.min(page * PAGE_SIZE, total)} of {total}
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        disabled={page <= 1}
+                        onClick={() => fetchLinks(page - 1)}
+                        className="px-3 py-1.5 text-sm font-medium rounded-md border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                      >
+                        Previous
+                      </button>
+                      {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+                        <button
+                          key={p}
+                          type="button"
+                          onClick={() => fetchLinks(p)}
+                          className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+                            p === page
+                              ? "bg-primary-600 text-white"
+                              : "border border-gray-300 text-gray-700 hover:bg-gray-50"
+                          }`}
                         >
-                          <Ban className="w-3.5 h-3.5 mr-1" />
-                          Revoke
-                        </Button>
-                      )}
-                      {(link.status === "revoked" || link.status === "expired") && (
-                        <Button
-                          color="secondary"
-                          size="xs"
-                          isDisabled={sending}
-                          onClick={() => handleSend(link.teacherEmail)}
-                        >
-                          <RefreshCw className="w-3.5 h-3.5 mr-1" />
-                          New Link
-                        </Button>
-                      )}
+                          {p}
+                        </button>
+                      ))}
+                      <button
+                        type="button"
+                        disabled={page >= totalPages}
+                        onClick={() => fetchLinks(page + 1)}
+                        className="px-3 py-1.5 text-sm font-medium rounded-md border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                      >
+                        Next
+                      </button>
                     </div>
                   </div>
-                </li>
-              ))}
-            </ul>
-            {/* Pagination */}
-            {totalPages > 1 && (
-              <div className="px-6 py-3 border-t border-gray-200 flex items-center justify-between">
-                <span className="text-sm text-gray-500">
-                  Showing {(page - 1) * PAGE_SIZE + 1}&ndash;{Math.min(page * PAGE_SIZE, total)} of {total}
-                </span>
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    disabled={page <= 1}
-                    onClick={() => fetchLinks(page - 1)}
-                    className="px-3 py-1.5 text-sm font-medium rounded-md border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                  >
-                    Previous
-                  </button>
-                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
-                    <button
-                      key={p}
-                      type="button"
-                      onClick={() => fetchLinks(p)}
-                      className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
-                        p === page
-                          ? "bg-primary-600 text-white"
-                          : "border border-gray-300 text-gray-700 hover:bg-gray-50"
-                      }`}
-                    >
-                      {p}
-                    </button>
-                  ))}
-                  <button
-                    type="button"
-                    disabled={page >= totalPages}
-                    onClick={() => fetchLinks(page + 1)}
-                    className="px-3 py-1.5 text-sm font-medium rounded-md border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                  >
-                    Next
-                  </button>
-                </div>
-              </div>
+                )}
+              </>
             )}
           </>
+        )}
+
+        {/* Tab Content: Public Claim Submissions */}
+        {activeTab === "public_claims" && (
+          <div>
+            {loadingSubmissions ? (
+              <div className="p-8 text-center text-gray-500">
+                <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-primary-600" />
+                <p className="text-sm">Loading public claim submissions...</p>
+              </div>
+            ) : publicSubmissions.length === 0 ? (
+              <div className="text-center py-12 text-gray-500">
+                <Users className="w-8 h-8 mx-auto mb-3 text-gray-300" />
+                <p className="text-sm font-medium">No public claim submissions recorded yet.</p>
+                <p className="text-xs text-gray-400 mt-1">Submissions created via the public claim link will appear here in real-time.</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm text-left">
+                  <thead className="bg-gray-50 text-gray-500 border-b border-gray-200">
+                    <tr>
+                      <th className="px-6 py-3 font-semibold text-xs">Name</th>
+                      <th className="px-6 py-3 font-semibold text-xs">Email</th>
+                      <th className="px-6 py-3 font-semibold text-xs">Phone</th>
+                      <th className="px-6 py-3 font-semibold text-xs">State / Region</th>
+                      <th className="px-6 py-3 font-semibold text-xs">Certificates</th>
+                      <th className="px-6 py-3 font-semibold text-xs">Downloaded</th>
+                      <th className="px-6 py-3 font-semibold text-xs">Date</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200">
+                    {publicSubmissions.map((sub) => (
+                      <tr key={sub.id} className="hover:bg-gray-50 transition-colors">
+                        <td className="px-6 py-4 font-medium text-gray-900">{sub.teacherName}</td>
+                        <td className="px-6 py-4 text-gray-600">{sub.teacherEmail}</td>
+                        <td className="px-6 py-4 text-gray-500">{sub.teacherPhone || "-"}</td>
+                        <td className="px-6 py-4 text-gray-500">{sub.teacherState || "-"}</td>
+                        <td className="px-6 py-4 font-semibold text-gray-800">{sub.certificateCount || 1}</td>
+                        <td className="px-6 py-4">
+                          {sub.hasDownloaded ? (
+                            <span className="inline-flex items-center gap-1 text-xs font-semibold text-green-700 bg-green-50 border border-green-200 px-2 py-0.5 rounded-full">
+                              <CheckCircle className="w-3 h-3" /> Yes
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
+                              <Clock className="w-3 h-3" /> Pending
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 text-xs text-gray-400">{formatDate(sub.createdAt)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
         )}
       </div>
     </div>

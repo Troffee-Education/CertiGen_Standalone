@@ -132,17 +132,21 @@ export default function SelfServeEngine({ eventData, magicLink }: Props) {
       saveAs(blob, `${mainName.replace(/[^a-z0-9]/gi, "_")}_certificate.pdf`);
 
       try {
-        await CertiGenService.createSubmission({
-          eventId: eventData.id,
-          magicLinkId: magicLink?.id,
-          teacherName: mainName,
-          teacherEmail: email || magicLink?.teacherEmail || "self-serve@claimed.local",
-          teacherPhone: phoneNumber,
-          teacherState: stateName,
-          studentData: [studentRecord],
-          certificateCount: 1,
-          status: "COMPLETED",
-          hasDownloaded: true,
+        await fetch("/api/submissions", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            eventId: eventData.id,
+            magicLinkId: magicLink?.id || null,
+            teacherName: mainName,
+            teacherEmail: email || magicLink?.teacherEmail || "self-serve@claimed.local",
+            teacherPhone: phoneNumber,
+            teacherState: stateName,
+            studentData: [studentRecord],
+            certificateCount: 1,
+            status: "COMPLETED",
+            hasDownloaded: true,
+          }),
         });
       } catch (analyticsErr) {
         console.warn("Analytics dataset save warning:", analyticsErr);

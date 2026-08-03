@@ -137,15 +137,19 @@ export function useCertificateGenerator({
 
       setEta("Saving dataset for analytics...");
       try {
-        await CertiGenService.createSubmission({
-          eventId,
-          magicLinkId,
-          teacherName: teacherName || "Teacher",
-          teacherEmail: teacherEmail || "teacher@example.com",
-          studentData: csvData,
-          certificateCount: csvData.length,
-          status: "COMPLETED",
-          hasDownloaded: true,
+        await fetch("/api/submissions", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            eventId,
+            magicLinkId: magicLinkId || null,
+            teacherName: teacherName || "Teacher",
+            teacherEmail: teacherEmail || "teacher@example.com",
+            studentData: csvData,
+            certificateCount: csvData.length,
+            status: "COMPLETED",
+            hasDownloaded: true,
+          }),
         });
       } catch (analyticsErr) {
         console.warn("Analytics dataset save warning:", analyticsErr);

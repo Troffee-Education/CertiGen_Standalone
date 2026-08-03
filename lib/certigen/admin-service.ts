@@ -137,4 +137,91 @@ export class CertiGenAdminService {
 
     return parentSubmissions;
   }
+
+  static async createSubmission(data: Partial<AdminSubmissionModel>): Promise<AdminSubmissionModel> {
+    const db = await getAdminDb();
+    const docRef = db.collection(SUBMISSIONS_COLLECTION).doc();
+    const mainId = docRef.id;
+    const rawStudentData = Array.isArray(data.studentData) ? data.studentData : [];
+
+    const cleanedStudentData = rawStudentData.map((row) => {
+      if (typeof row !== "object" || row === null) return row;
+      const cleanRow: Record<string, any> = {};
+      Object.keys(row).forEach((k) => {
+        const lKey = k.toLowerCase();
+        if (
+          lKey.includes("merged doc") ||
+          lKey.includes("pautan google drive") ||
+          lKey.includes("document merge status")
+        ) {
+          return;
+        }
+        cleanRow[k] = row[k];
+      });
+      return cleanRow;
+    });
+
+    const CHUNK_SIZE = 15;
+    const firstChunk = cleanedStudentData.slice(0, CHUNK_SIZE);
+    const remainingChunks: any[][] = [];
+
+    for (let i = CHUNK_SIZE; i < cleanedStudentData.length; i += CHUNK_SIZE) {
+      remainingChunks.push(cleanedStudentData.slice(i, i + CHUNK_SIZE));
+    }
+
+    const subData: Record<string, any> = {
+      ...data,
+      id: mainId,
+      studentData: firstChunk,
+      certificateCount: data.certificateCount || rawStudentData.length,
+      status: data.status || "COMPLETED",
+      hasDownloaded: data.hasDownloaded ?? true,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    Object.keys(subData).forEach((key) => {
+      if (subData[key] === undefined) delete subData[key];
+    });
+
+    let currentBatch = db.batch();
+    let batchCount = 0;
+
+    currentBatch.set(docRef, subData);
+    batchCount++;
+
+    for (let cIdx = 0; cIdx < remainingChunks.length; cIdx++) {
+      const chunkDocRef = db.collection(SUBMISSIONS_COLLECTION).doc();
+      const chunkData: Record<string, any> = {
+        id: chunkDocRef.id,
+        eventId: data.eventId,
+        teacherEmail: data.teacherEmail || "",
+        teacherName: data.teacherName || "",
+        studentData: remainingChunks[cIdx],
+        isChunk: true,
+        parentSubmissionId: mainId,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      Object.keys(chunkData).forEach((key) => {
+        if (chunkData[key] === undefined) delete chunkData[key];
+      });
+
+      currentBatch.set(chunkDocRef, chunkData);
+      batchCount++;
+
+      if (batchCount >= 200) {
+        await currentBatch.commit();
+        currentBatch = db.batch();
+        batchCount = 0;
+      }
+    }
+
+    if (batchCount > 0) {
+      await currentBatch.commit();
+    }
+
+    return subData as AdminSubmissionModel;
+  }
 }
