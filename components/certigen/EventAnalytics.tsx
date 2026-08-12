@@ -242,7 +242,21 @@ export default function EventAnalytics({ eventId, certificateType = "student" }:
     submissions.forEach((sub) => {
       const dataRows = Array.isArray(sub.studentData) && sub.studentData.length > 0 ? sub.studentData : null;
       if (dataRows) {
-        dataRows.forEach((r: any) => { if (typeof r === "object" && r !== null) rows.push(r); });
+        dataRows.forEach((r: any) => {
+          if (typeof r === "object" && r !== null) {
+            rows.push({
+              ...r,
+              "Teacher Name": sub.teacherName || "Teacher",
+              "Teacher Email": sub.teacherEmail || "",
+              "Teacher Phone": sub.teacherPhone || "",
+              "School Name": sub.schoolName || "",
+              _teacherName: sub.teacherName || "Teacher",
+              _teacherEmail: sub.teacherEmail || "",
+              _teacherPhone: sub.teacherPhone || "",
+              _schoolName: sub.schoolName || "",
+            });
+          }
+        });
       } else {
         // Fallback: use submission-level metadata
         const fallback: Record<string, any> = {};
@@ -250,7 +264,12 @@ export default function EventAnalytics({ eventId, certificateType = "student" }:
         if (sub.teacherEmail) fallback["Email"] = sub.teacherEmail;
         if (sub.teacherState) fallback["State"] = sub.teacherState;
         if (sub.teacherPhone) fallback["Phone"] = sub.teacherPhone;
-        if (Object.keys(fallback).length > 0) rows.push(fallback);
+        if (sub.schoolName) fallback["School Name"] = sub.schoolName;
+        fallback._teacherName = sub.teacherName || "Teacher";
+        fallback._teacherEmail = sub.teacherEmail || "";
+        fallback._teacherPhone = sub.teacherPhone || "";
+        fallback._schoolName = sub.schoolName || "";
+        if (Object.keys(fallback).length > 4) rows.push(fallback);
       }
     });
     return rows;
@@ -296,6 +315,7 @@ export default function EventAnalytics({ eventId, certificateType = "student" }:
   const { stateMap, allSchools, nationStats } = useMemo(() => {
     const stateAnalytics: Record<string, StateAnalytics> = {};
     const schoolsMap: Record<string, SchoolAnalytics> = {};
+    const uniqueTeachers = new Set<string>();
     let grandMale = 0, grandFemale = 0, grandStudents = 0;
 
     const getOrCreate = (sn: string): StateAnalytics => {
@@ -306,14 +326,26 @@ export default function EventAnalytics({ eventId, certificateType = "student" }:
     allFlatRows.forEach((r) => {
       const rawState = (geoKey ? String(r[geoKey] || "") : "").trim() || "Unspecified";
       const state = normalizeState(rawState);
-      const school = (schoolKey ? String(r[schoolKey] || "") : "").trim() || "Unspecified School";
+      
+      const school = teacherEvent
+        ? ((schoolKey ? String(r[schoolKey] || "") : "").trim() || "Unspecified School")
+        : (r._schoolName || (schoolKey ? String(r[schoolKey] || "") : "").trim() || "Unspecified School");
+        
       const ppd = (districtKey ? String(r[districtKey] || "") : "").trim() || "";
       const gender = (genderKey ? String(r[genderKey] || "") : "").toLowerCase();
       const category = (categoryKey ? String(r[categoryKey] || "") : "").trim() || "Standard";
       const subject = (subjectKey ? String(r[subjectKey] || "") : "").trim() || "General";
       const cnt = countKey ? (parseInt(String(r[countKey] || "0").replace(/[^0-9]/g, ""), 10) || 1) : 1;
-      const tName = (nameKey ? String(r[nameKey] || "") : "").trim() || "Teacher";
-      const tEmail = (emailKey ? String(r[emailKey] || "") : "").trim() || "";
+      
+      const tName = teacherEvent
+        ? ((nameKey ? String(r[nameKey] || "") : "").trim() || "Teacher")
+        : (r._teacherName || "Teacher");
+      const tEmail = teacherEvent
+        ? ((emailKey ? String(r[emailKey] || "") : "").trim() || "")
+        : (r._teacherEmail || "");
+
+      if (tEmail) uniqueTeachers.add(tEmail.toLowerCase());
+      else uniqueTeachers.add(tName.toLowerCase());
 
       const sk = `${state.toUpperCase()}__${school.toUpperCase()}`;
       if (!schoolsMap[sk]) schoolsMap[sk] = { schoolName: school, state, ppd, totalStudents: 0, maleCount: 0, femaleCount: 0, categories: {}, subjects: {}, teacherCount: 0, teachers: [] };
@@ -326,7 +358,7 @@ export default function EventAnalytics({ eventId, certificateType = "student" }:
       if (gender.includes("lelak") || gender.includes("male") || gender === "m" || gender === "l") { sch.maleCount += cnt; grandMale += cnt; }
       else if (gender.includes("perempu") || gender.includes("femal") || gender === "f" || gender === "p") { sch.femaleCount += cnt; grandFemale += cnt; }
 
-      const ex = sch.teachers.find((t) => t.email === tEmail || t.name === tName);
+      const ex = sch.teachers.find((t) => t.email.toLowerCase() === tEmail.toLowerCase() || t.name.toLowerCase() === tName.toLowerCase());
       if (!ex) { sch.teacherCount++; sch.teachers.push({ name: tName, email: tEmail, notesCount: cnt }); }
       else { ex.notesCount += cnt; }
 
@@ -338,8 +370,18 @@ export default function EventAnalytics({ eventId, certificateType = "student" }:
       st.schools.push(sch); st.totalStudents += sch.totalStudents; st.totalTeachers += sch.teacherCount; st.totalSchools++; st.maleCount += sch.maleCount; st.femaleCount += sch.femaleCount;
     });
 
-    return { stateMap: stateAnalytics, allSchools: Object.values(schoolsMap), nationStats: { totalStudents: grandStudents, totalTeachers: allFlatRows.length, totalSchools: Object.values(schoolsMap).length, maleCount: grandMale, femaleCount: grandFemale } };
-  }, [allFlatRows, geoKey, schoolKey, districtKey, genderKey, categoryKey, subjectKey, countKey, nameKey, emailKey]);
+    return { 
+      stateMap: stateAnalytics, 
+      allSchools: Object.values(schoolsMap), 
+      nationStats: { 
+        totalStudents: grandStudents, 
+        totalTeachers: teacherEvent ? allFlatRows.length : uniqueTeachers.size, 
+        totalSchools: Object.values(schoolsMap).length, 
+        maleCount: grandMale, 
+        femaleCount: grandFemale 
+      } 
+    };
+  }, [allFlatRows, geoKey, schoolKey, districtKey, genderKey, categoryKey, subjectKey, countKey, nameKey, emailKey, teacherEvent]);
 
   const activeStateData = useMemo(() => selectedState === "ALL" ? null : stateMap[selectedState] || null, [stateMap, selectedState]);
 
