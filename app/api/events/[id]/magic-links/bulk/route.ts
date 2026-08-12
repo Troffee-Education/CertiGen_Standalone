@@ -38,10 +38,17 @@ export async function POST(
     // Normalize + deduplicate emails (case-insensitive)
     const seen = new Set<string>();
     const results: { teacherEmail: string; magicUrl: string }[] = [];
+    const dbLinksToCreate: any[] = [];
     let invalidCount = 0;
 
     for (const teacher of teachers) {
-      const rawEmail = teacher?.email || teacher?.Email;
+      // Find the email key case-insensitively
+      const emailKey = Object.keys(teacher || {}).find(k => {
+        const lk = k.toLowerCase().trim();
+        return lk === 'email' || lk === 'email address' || lk === 'e-mel' || lk === 'e-mail' || lk === 'email_address' || lk === 'alamat emel';
+      });
+      const rawEmail = emailKey ? teacher[emailKey] : null;
+
       if (!rawEmail) {
         invalidCount++;
         continue;
@@ -65,10 +72,15 @@ export async function POST(
         const expiresAt = Date.now() + 7 * 24 * 60 * 60 * 1000; // 7 days
 
         const prefillData = { ...teacher };
-        delete prefillData.email;
-        delete prefillData.Email;
+        // Remove variations of email from prefillData
+        Object.keys(prefillData).forEach(k => {
+          const lk = k.toLowerCase().trim();
+          if (lk === 'email' || lk === 'email address' || lk === 'e-mel' || lk === 'e-mail' || lk === 'email_address' || lk === 'alamat emel') {
+            delete prefillData[k];
+          }
+        });
 
-        await CertiGenAdminService.createMagicLink({
+        dbLinksToCreate.push({
           eventId: id,
           teacherEmail: email,
           token,
@@ -85,6 +97,10 @@ export async function POST(
       }
 
       results.push({ teacherEmail: email, magicUrl });
+    }
+
+    if (dbLinksToCreate.length > 0) {
+      await CertiGenAdminService.createMagicLinksBulk(dbLinksToCreate);
     }
 
     const message = [

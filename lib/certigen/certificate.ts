@@ -217,6 +217,66 @@ export function sanitizeTextForFont(text: string, fontFamily: string): string {
   return cleaned.replace(/\s+/g, " ").trim();
 }
 
+export async function fetchImageAsArrayBuffer(url: string): Promise<ArrayBuffer> {
+  if (!url) throw new Error("Image URL is empty");
+
+  // Handle data: URIs directly without fetch
+  if (url.startsWith("data:")) {
+    const base64Data = url.split(",")[1];
+    const binaryStr = atob(base64Data);
+    const bytes = new Uint8Array(binaryStr.length);
+    for (let i = 0; i < binaryStr.length; i++) {
+      bytes[i] = binaryStr.charCodeAt(i);
+    }
+    return bytes.buffer;
+  }
+
+  // For Firebase Storage URLs, route through our server-side proxy to bypass CORS restrictions
+  const isFirebaseStorageUrl = url.includes("firebasestorage.googleapis.com") || url.includes("storage.googleapis.com");
+  const fetchUrl = isFirebaseStorageUrl
+    ? `/api/image-proxy?url=${encodeURIComponent(url)}`
+    : url;
+
+  // Attempt fetch (through proxy for Firebase Storage URLs)
+  try {
+    const res = await fetch(fetchUrl, { mode: "cors" });
+    if (res.ok) {
+      return await res.arrayBuffer();
+    }
+  } catch (err) {
+    console.warn("[fetchImageAsArrayBuffer] Direct fetch failed, trying Image fallback:", err);
+  }
+
+
+  // Fallback: Load via HTML Image element & Canvas to bypass fetch CORS / NetworkError restrictions
+  return new Promise<ArrayBuffer>((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => {
+      try {
+        const canvas = document.createElement("canvas");
+        canvas.width = img.naturalWidth || img.width;
+        canvas.height = img.naturalHeight || img.height;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return reject(new Error("Canvas context 2D not available"));
+        ctx.drawImage(img, 0, 0);
+        const dataUrl = canvas.toDataURL("image/png");
+        const base64 = dataUrl.split(",")[1];
+        const binaryStr = atob(base64);
+        const bytes = new Uint8Array(binaryStr.length);
+        for (let i = 0; i < binaryStr.length; i++) {
+          bytes[i] = binaryStr.charCodeAt(i);
+        }
+        resolve(bytes.buffer);
+      } catch (canvasErr) {
+        reject(new Error(`Failed to convert image: ${canvasErr instanceof Error ? canvasErr.message : String(canvasErr)}`));
+      }
+    };
+    img.onerror = () => reject(new Error("NetworkError: Unable to load template image resource from URL."));
+    img.src = url;
+  });
+}
+
 export async function drawField(
   page: PDFPage,
   box: FieldConfig,
@@ -228,11 +288,12 @@ export async function drawField(
   greatVibesRef: { current: ArrayBuffer | null },
   templateUrl: string
 ) {
+  // Popup fields are web-only (modal dialog after download); skip PDF rendering
+  if (box.type === "popup") return;
+
   if (box.type === "image") {
     try {
-      const res = await fetch(box.imageUrl);
-      if (!res.ok) return;
-      const bytes = await res.arrayBuffer();
+      const bytes = await fetchImageAsArrayBuffer(box.imageUrl);
       const img = await embedImage(pdfDoc, bytes, templateUrl);
       const px = (box.x / 100) * image.width;
       const py = (box.y / 100) * image.height;

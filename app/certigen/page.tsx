@@ -3,49 +3,61 @@ import { isTeacherEvent } from "@/lib/services/certigen.service";
 import { CertiGenAdminService } from "@/lib/certigen/admin-service";
 import AdminBulkEngine from "@/components/certigen/AdminBulkEngine";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export default async function PublicCertiGenPage({
   searchParams,
 }: {
-  searchParams: Promise<{ token?: string }>;
+  searchParams: Promise<{ token?: string; eventId?: string }>;
 }) {
   const resolvedParams = await searchParams;
   const token = resolvedParams.token;
+  const eventId = resolvedParams.eventId;
 
-  if (!token) {
+  if (!token && !eventId) {
     return (
       <div className="min-h-[80vh] flex items-center justify-center p-6">
         <div className="bg-white dark:bg-slate-900 p-8 rounded-xl shadow-sm border border-gray-200 dark:border-slate-800 text-center max-w-md w-full">
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Invalid Link</h1>
-          <p className="text-gray-500 dark:text-gray-400">No token was provided in the access link.</p>
+          <p className="text-gray-500 dark:text-gray-400">No token or event ID was provided in the access link.</p>
         </div>
       </div>
     );
   }
 
-  const linkData = await CertiGenAdminService.getMagicLinkByToken(token);
-  if (!linkData || linkData.isRevoked) {
-    return (
-      <div className="min-h-[80vh] flex items-center justify-center p-6">
-        <div className="bg-white dark:bg-slate-900 p-8 rounded-xl shadow-sm border border-gray-200 dark:border-slate-800 text-center max-w-md w-full">
-          <h1 className="text-2xl font-bold text-red-600 mb-2">Access Denied</h1>
-          <p className="text-gray-500 dark:text-gray-400">This magic link is invalid or has been revoked.</p>
+  let eventData = null;
+  let magicLink = null;
+
+  if (token) {
+    magicLink = await CertiGenAdminService.getMagicLinkByToken(token);
+    if (!magicLink || magicLink.isRevoked) {
+      return (
+        <div className="min-h-[80vh] flex items-center justify-center p-6">
+          <div className="bg-white dark:bg-slate-900 p-8 rounded-xl shadow-sm border border-gray-200 dark:border-slate-800 text-center max-w-md w-full">
+            <h1 className="text-2xl font-bold text-red-600 mb-2">Access Denied</h1>
+            <p className="text-gray-500 dark:text-gray-400">This magic link is invalid or has been revoked.</p>
+          </div>
         </div>
-      </div>
-    );
+      );
+    }
+
+    if (magicLink.expiresAt < Date.now()) {
+      return (
+        <div className="min-h-[80vh] flex items-center justify-center p-6">
+          <div className="bg-white dark:bg-slate-900 p-8 rounded-xl shadow-sm border border-gray-200 dark:border-slate-800 text-center max-w-md w-full">
+            <h1 className="text-2xl font-bold text-red-600 mb-2">Link Expired</h1>
+            <p className="text-gray-500 dark:text-gray-400">This magic link has expired. Please request a new one.</p>
+          </div>
+        </div>
+      );
+    }
+
+    eventData = await CertiGenAdminService.getEventById(magicLink.eventId);
+  } else if (eventId) {
+    eventData = await CertiGenAdminService.getEventById(eventId);
   }
 
-  if (linkData.expiresAt < Date.now()) {
-    return (
-      <div className="min-h-[80vh] flex items-center justify-center p-6">
-        <div className="bg-white dark:bg-slate-900 p-8 rounded-xl shadow-sm border border-gray-200 dark:border-slate-800 text-center max-w-md w-full">
-          <h1 className="text-2xl font-bold text-red-600 mb-2">Link Expired</h1>
-          <p className="text-gray-500 dark:text-gray-400">This magic link has expired. Please request a new one.</p>
-        </div>
-      </div>
-    );
-  }
-
-  const eventData = await CertiGenAdminService.getEventById(linkData.eventId);
   if (!eventData || eventData.isArchived) {
     return (
       <div className="min-h-[80vh] flex items-center justify-center p-6">
@@ -81,9 +93,9 @@ export default async function PublicCertiGenPage({
 
       <AdminBulkEngine
         eventId={eventData.id}
-        magicLinkId={linkData.id}
-        adminName={linkData.teacherEmail ? linkData.teacherEmail.split('@')[0] : "Teacher"}
-        adminEmail={linkData.teacherEmail || ""}
+        magicLinkId={magicLink?.id}
+        adminName={magicLink?.teacherEmail ? magicLink.teacherEmail.split('@')[0] : ""}
+        adminEmail={magicLink?.teacherEmail || ""}
         templateUrl={eventData.templateUrl}
         templateConfig={eventData.templateConfig}
       />

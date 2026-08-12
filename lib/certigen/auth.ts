@@ -1,11 +1,7 @@
-import { getAdminDb } from "@/lib/firebase/admin";
+import { getAdminDb, getAdminApp } from "@/lib/firebase/admin";
+import { getAuth } from "firebase-admin/auth";
 
 export const ADMIN_UID = "certigen-standalone-admin";
-
-function safeRequire(modulePath: string): any {
-    // eslint-disable-next-line no-eval
-    return eval('require')(modulePath);
-}
 
 /**
  * Mint a Firebase custom token for the fixed standalone admin uid so the
@@ -13,21 +9,24 @@ function safeRequire(modulePath: string): any {
  * The users doc is written server-side so rules see the admin flag.
  */
 export async function mintAdminCustomToken(): Promise<{ customToken: string }> {
-    const db = await getAdminDb();
+    try {
+        const db = await getAdminDb();
+        await db.collection("users").doc(ADMIN_UID).set(
+            {
+                displayName: "CertiGen Admin",
+                email: "certigen-admin@localhost",
+                isSuperAdmin: true,
+                isSubAdmin: false,
+                isOrganisation: false,
+            },
+            { merge: true }
+        );
+    } catch (error) {
+        console.warn("[mintAdminCustomToken] Non-critical warning: Unable to sync user doc to Firestore:", error);
+    }
 
-    await db.collection("users").doc(ADMIN_UID).set(
-        {
-            displayName: "CertiGen Admin",
-            email: "certigen-admin@localhost",
-            isSuperAdmin: true,
-            isSubAdmin: false,
-            isOrganisation: false,
-        },
-        { merge: true }
-    );
-
-    const { getAuth } = safeRequire("firebase-admin/auth");
-    const customToken = await getAuth().createCustomToken(ADMIN_UID);
+    const adminApp = await getAdminApp();
+    const customToken = await getAuth(adminApp).createCustomToken(ADMIN_UID);
 
     return { customToken };
 }
@@ -46,8 +45,8 @@ export async function requireAdminAuth(request: Request): Promise<{ uid: string 
     }
 
     try {
-        const { getAuth } = safeRequire("firebase-admin/auth");
-        const decoded = await getAuth().verifyIdToken(token);
+        const adminApp = await getAdminApp();
+        const decoded = await getAuth(adminApp).verifyIdToken(token);
         if (decoded.uid !== ADMIN_UID) {
             return null;
         }

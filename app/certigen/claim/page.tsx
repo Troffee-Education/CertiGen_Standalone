@@ -3,6 +3,10 @@ import { isTeacherEvent } from "@/lib/services/certigen.service";
 import { CertiGenAdminService } from "@/lib/certigen/admin-service";
 import SelfServeEngine from "@/components/certigen/SelfServeEngine";
 
+// Always fetch fresh Firestore data — never serve a cached copy
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export default async function PublicClaimCertificatePage({
   searchParams,
 }: {

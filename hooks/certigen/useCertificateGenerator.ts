@@ -9,9 +9,11 @@ import { parseFile } from "@/lib/certigen/file-parser";
 import {
   MAX_STUDENTS,
   NAME_PATTERNS,
-  autoMapColumns,
   detectColumn,
   generatePdf,
+  autoMapColumns,
+  resolveFontFamily,
+  fetchImageAsArrayBuffer,
 } from "@/lib/certigen/certificate";
 
 type Props = {
@@ -21,6 +23,8 @@ type Props = {
   magicLinkId?: string;
   teacherName: string;
   teacherEmail: string;
+  teacherPhone?: string;
+  schoolName?: string;
 };
 
 export function useCertificateGenerator({
@@ -30,6 +34,8 @@ export function useCertificateGenerator({
   magicLinkId,
   teacherName,
   teacherEmail,
+  teacherPhone,
+  schoolName,
 }: Props) {
   const [csvData, setCsvData] = useState<Record<string, unknown>[]>([]);
   const [csvHeaders, setCsvHeaders] = useState<string[]>([]);
@@ -90,9 +96,7 @@ export function useCertificateGenerator({
       setJobStatus("PROCESSING");
       setEta("Downloading template...");
       
-      const res = await fetch(templateUrl);
-      if (!res.ok) throw new Error("Failed to load template image");
-      const templateImageBytes = await res.arrayBuffer();
+      const templateImageBytes = await fetchImageAsArrayBuffer(templateUrl);
       
       const greatVibesRef: { current: ArrayBuffer | null } = { current: null };
       const zip = new JSZip();
@@ -145,6 +149,8 @@ export function useCertificateGenerator({
             magicLinkId: magicLinkId || null,
             teacherName: teacherName || "Teacher",
             teacherEmail: teacherEmail || "teacher@example.com",
+            teacherPhone: teacherPhone || "",
+            schoolName: schoolName || "",
             studentData: csvData,
             certificateCount: csvData.length,
             status: "COMPLETED",
@@ -169,9 +175,7 @@ export function useCertificateGenerator({
     if (csvData.length === 0 || Object.values(mapping).length === 0) return;
 
     try {
-      const res = await fetch(templateUrl);
-      if (!res.ok) throw new Error("Failed to load template image");
-      const templateImageBytes = await res.arrayBuffer();
+      const templateImageBytes = await fetchImageAsArrayBuffer(templateUrl);
       const student = csvData[0];
       const greatVibesRef: { current: ArrayBuffer | null } = { current: null };
 

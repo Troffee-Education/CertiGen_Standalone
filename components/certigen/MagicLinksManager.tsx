@@ -85,6 +85,12 @@ export default function MagicLinksManager({ eventId, certificateType = "student"
   const [bulkResults, setBulkResults] = useState<{ teacherEmail: string; magicUrl: string }[]>([]);
   const [isUnique, setIsUnique] = useState(true);
   const [isOneTimeUse, setIsOneTimeUse] = useState(true);
+  const [bulkSummary, setBulkSummary] = useState<{
+    total: number;
+    valid: number;
+    invalid: number;
+    duplicates: number;
+  } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const showNotif = (n: Notification) => {
@@ -180,16 +186,71 @@ export default function MagicLinksManager({ eventId, certificateType = "student"
           return;
         }
         
-        // Ensure email column exists
+        // Find email column case-insensitively using common patterns
         const firstRow = data[0] as any;
-        const hasEmail = Object.keys(firstRow).some(k => k.toLowerCase() === 'email');
-        if (!hasEmail) {
-          showNotif({ type: "error", message: "File must contain an 'email' or 'Email' column." });
+        const emailPatterns = ["email", "email address", "e-mel", "e-mail", "alamat emel", "teacher email"];
+        const emailKey = Object.keys(firstRow).find(k => {
+          const lk = k.toLowerCase().trim();
+          return emailPatterns.some(p => lk === p);
+        });
+
+        if (!emailKey) {
+          showNotif({ type: "error", message: "File must contain an email column (e.g., 'Email', 'e-mel', 'Email Address')." });
           return;
         }
 
-        setBulkTeachers(data);
-        showNotif({ type: "success", message: `Successfully loaded ${data.length} teachers from ${file.name}.` });
+        const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@.]{2,}$/;
+        const seenEmails = new Set<string>();
+        const validTeachers: any[] = [];
+        let invalidCount = 0;
+        let duplicateCount = 0;
+
+        for (const row of data) {
+          const rawEmail = row[emailKey];
+          if (!rawEmail) {
+            invalidCount++;
+            continue;
+          }
+          const emailTrimmed = String(rawEmail).trim().toLowerCase();
+          if (!EMAIL_REGEX.test(emailTrimmed)) {
+            invalidCount++;
+            continue;
+          }
+          if (seenEmails.has(emailTrimmed)) {
+            duplicateCount++;
+            continue;
+          }
+          seenEmails.add(emailTrimmed);
+
+          // Standardize and normalize key to 'email'
+          const normalizedRow = { ...row };
+          // Remove all variation of email headers from the normalized row
+          Object.keys(normalizedRow).forEach(k => {
+            const lk = k.toLowerCase().trim();
+            if (emailPatterns.some(p => lk === p)) {
+              delete normalizedRow[k];
+            }
+          });
+          normalizedRow.email = emailTrimmed;
+          validTeachers.push(normalizedRow);
+        }
+
+        setBulkTeachers(validTeachers);
+        setBulkSummary({
+          total: data.length,
+          valid: validTeachers.length,
+          invalid: invalidCount,
+          duplicates: duplicateCount,
+        });
+
+        if (validTeachers.length === 0) {
+          showNotif({ type: "error", message: "No valid email addresses found in the file." });
+        } else {
+          showNotif({
+            type: "success",
+            message: `Loaded ${data.length} rows: ${validTeachers.length} valid, ${invalidCount} invalid skipped, ${duplicateCount} duplicates skipped.`,
+          });
+        }
       } catch (err: any) {
         showNotif({ type: "error", message: `Failed to parse file: ${err.message}` });
       }
@@ -220,7 +281,8 @@ export default function MagicLinksManager({ eventId, certificateType = "student"
         setBulkResults(data.results || []);
         showNotif({ type: "success", message: data.message || "Links generated successfully!" });
         setBulkTeachers([]);
-        if (fileInputRef.current) fileInputRef.current.value = '';
+        setBulkSummary(null);
+        if (fileInputRef.current) fileInputRef.current.value = "";
         fetchLinks(1);
       } else {
         showNotif({ type: "error", message: data.error || "Failed to generate bulk links" });
@@ -355,8 +417,8 @@ export default function MagicLinksManager({ eventId, certificateType = "student"
       )}
 
       {/* Invite Mode Banner */}
-      <div className={`bg-gradient-to-r ${teacherEvent ? "from-purple-900 to-purple-800" : "from-indigo-900 to-indigo-800"} text-white p-6 rounded-xl shadow-sm border ${teacherEvent ? "border-purple-700" : "border-indigo-700"} space-y-2`}>
-        <div>
+      <div className={`bg-gradient-to-r ${teacherEvent ? "from-purple-900 to-purple-800" : "from-indigo-900 to-indigo-800"} text-white p-6 rounded-xl shadow-sm border ${teacherEvent ? "border-purple-700" : "border-indigo-700"} space-y-4`}>
+        <div className="space-y-2">
           <h2 className="text-lg font-bold flex items-center gap-2 text-white">
             {teacherEvent ? <Users className="w-5 h-5 text-purple-300" /> : <GraduationCap className="w-5 h-5 text-indigo-300" />}
             {teacherEvent ? "Teacher Certificate Access" : "Teacher Student-Bulk Access"}
@@ -365,6 +427,40 @@ export default function MagicLinksManager({ eventId, certificateType = "student"
             {teacherEvent
               ? "This event issues teacher certificates. Every invite below is a single-claim link — teachers open it, fill the form, and download their own certificate."
               : "This event issues student certificates. Every invite below is a bulk-upload link — teachers open it and upload a CSV/XLSX of their students."}
+          </p>
+        </div>
+
+        {/* Public Direct Link Section */}
+        <div className="pt-3 border-t border-white/10 space-y-2">
+          <Label className="text-xs font-semibold uppercase tracking-wider text-indigo-200 block">
+            Public Direct Share Link (Share with all teachers)
+          </Label>
+          <div className="flex items-center gap-2 max-w-2xl">
+            <code className="flex-1 bg-white/10 border border-white/10 rounded px-3 py-2 text-xs font-mono text-white select-all truncate">
+              {typeof window !== "undefined"
+                ? `${window.location.origin}/certigen${teacherEvent ? "/claim" : ""}?eventId=${eventId}`
+                : `/certigen${teacherEvent ? "/claim" : ""}?eventId=${eventId}`}
+            </code>
+            <Button
+              color="secondary"
+              size="sm"
+              onClick={() => {
+                const origin = typeof window !== "undefined" ? window.location.origin : "";
+                const url = `${origin}/certigen${teacherEvent ? "/claim" : ""}?eventId=${eventId}`;
+                navigator.clipboard.writeText(url).then(() => {
+                  showNotif({ type: "success", message: "Public share link copied!" });
+                });
+              }}
+              className="bg-white/10 hover:bg-white/20 border-white/15 text-white whitespace-nowrap"
+            >
+              <Copy className="w-4 h-4 mr-2" />
+              Copy Public Link
+            </Button>
+          </div>
+          <p className="text-[10px] text-indigo-200/85 leading-relaxed">
+            {teacherEvent
+              ? "Any teacher who visits this link can directly claim their individual certificate by entering their details."
+              : "Any teacher who visits this link can directly fill their details and upload their student list in bulk."}
           </p>
         </div>
       </div>
@@ -408,6 +504,33 @@ export default function MagicLinksManager({ eventId, certificateType = "student"
               <p className="text-xs text-gray-500 mt-2">
                 File must include an <code className="bg-gray-100 px-1 py-0.5 rounded">email</code> column. Other columns will be used to pre-fill details!
               </p>
+              {bulkSummary && (
+                <div className="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200 space-y-2">
+                  <h4 className="text-xs font-semibold uppercase tracking-wider text-gray-500">File Integrity Report</h4>
+                  <div className="grid grid-cols-2 gap-x-6 gap-y-1.5 text-sm pt-1">
+                    <div className="flex justify-between border-b border-gray-100 pb-1">
+                      <span className="text-gray-500">Total Rows:</span>
+                      <span className="font-semibold text-gray-800">{bulkSummary.total}</span>
+                    </div>
+                    <div className="flex justify-between border-b border-gray-100 pb-1">
+                      <span className="text-gray-500">Valid & Clean:</span>
+                      <span className="font-semibold text-green-600">{bulkSummary.valid}</span>
+                    </div>
+                    <div className="flex justify-between border-b border-gray-100 pb-1">
+                      <span className="text-gray-500">Duplicates Skipped:</span>
+                      <span className={`font-semibold ${bulkSummary.duplicates > 0 ? "text-amber-600" : "text-gray-800"}`}>
+                        {bulkSummary.duplicates}
+                      </span>
+                    </div>
+                    <div className="flex justify-between border-b border-gray-100 pb-1">
+                      <span className="text-gray-500">Invalid Emails:</span>
+                      <span className={`font-semibold ${bulkSummary.invalid > 0 ? "text-red-600" : "text-gray-800"}`}>
+                        {bulkSummary.invalid}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
             {bulkTeachers.length > 0 && (
@@ -458,6 +581,7 @@ export default function MagicLinksManager({ eventId, certificateType = "student"
                   type="button"
                   onClick={() => {
                     setBulkTeachers([]);
+                    setBulkSummary(null);
                     if (fileInputRef.current) fileInputRef.current.value = '';
                   }}
                   className="text-xs text-red-600 hover:text-red-700 font-medium hover:underline"

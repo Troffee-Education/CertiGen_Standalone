@@ -2,14 +2,14 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Save, Type, Image as ImageIcon, Trash2, Loader2, Upload, GripHorizontal, AlignLeft, AlignCenter, AlignRight, Bold, Eye, RefreshCw, CheckCircle } from "lucide-react";
+import { ArrowLeft, Save, Type, Image as ImageIcon, Trash2, Loader2, Upload, GripHorizontal, AlignLeft, AlignCenter, AlignRight, Bold, Eye, RefreshCw, CheckCircle, MessageSquare, ImagePlus } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/base/buttons/button";
 import { Input } from "@/components/base/input/input";
 import { Label } from "@/components/base/input/label";
 import { CertiGenService } from "@/lib/services/certigen.service";
 import { saveAs } from "file-saver";
-import { generatePdf } from "@/lib/certigen/certificate";
+import { generatePdf, fetchImageAsArrayBuffer } from "@/lib/certigen/certificate";
 
 export type TextFieldConfig = {
   id: string;
@@ -36,13 +36,26 @@ export type ImageFieldConfig = {
   opacity: number;
 };
 
-export type FieldConfig = TextFieldConfig | ImageFieldConfig;
+export type PopupFieldConfig = {
+  id: string;
+  type: "popup";
+  label: string;       // Title shown in modal header
+  message: string;     // Body text shown in the modal
+  photoUrl?: string;   // Optional image URL shown in the modal
+  triggerLabel: string; // Button label inside the modal ("Close", "Thank You!", etc.)
+  timing: "before" | "after"; // Show popup before or after the certificate download
+  requireCheckbox?: boolean; // Whether the user must check a box to proceed
+  checkboxLabel?: string;    // Label for the checkbox
+};
+
+export type FieldConfig = TextFieldConfig | ImageFieldConfig | PopupFieldConfig;
 
 type Props = {
   eventId: string;
   title: string;
   initialTemplateUrl: string;
   initialConfig: FieldConfig[] | null;
+  onSave?: (updatedConfig: FieldConfig[], updatedTemplateUrl?: string) => void;
 };
 
 const FONT_FAMILIES = ["Great Vibes", "Helvetica", "Times-Roman", "Courier"];
@@ -53,10 +66,17 @@ function genId() {
 
 function normalizeField(f: Record<string, unknown>): FieldConfig {
   if (f.type === "image") return { ...f, type: "image" as const } as unknown as ImageFieldConfig;
+  if (f.type === "popup") {
+    return {
+      ...f,
+      type: "popup" as const,
+      timing: (f.timing as string) || "after", // default for fields saved before timing was added
+    } as unknown as PopupFieldConfig;
+  }
   return { ...f, type: "text" as const } as unknown as TextFieldConfig;
 }
 
-export default function CanvasEditor({ eventId, title, initialTemplateUrl, initialConfig }: Props) {
+export default function CanvasEditor({ eventId, title, initialTemplateUrl, initialConfig, onSave }: Props) {
   const router = useRouter();
   const [templateUrl, setTemplateUrl] = useState(initialTemplateUrl);
   const [fields, setFields] = useState<FieldConfig[]>(
@@ -65,10 +85,12 @@ export default function CanvasEditor({ eventId, title, initialTemplateUrl, initi
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [isUploadingPopupPhoto, setIsUploadingPopupPhoto] = useState(false);
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const reuploadRef = useRef<HTMLInputElement>(null);
+  const popupPhotoRef = useRef<HTMLInputElement>(null);
   const [imgSize, setImgSize] = useState({ w: 800, h: 600 });
   const [scale, setScale] = useState(1);
 
@@ -115,6 +137,9 @@ export default function CanvasEditor({ eventId, title, initialTemplateUrl, initi
       const url = await CertiGenService.uploadTemplateImage(eventId, file);
       setTemplateUrl(url);
       await CertiGenService.updateEvent(eventId, { templateUrl: url, templateConfig: fields });
+      if (onSave) {
+        onSave(fields, url);
+      }
       router.refresh();
     } catch (err) {
       console.error(err);
@@ -134,7 +159,9 @@ export default function CanvasEditor({ eventId, title, initialTemplateUrl, initi
     try {
       await CertiGenService.updateEvent(eventId, { templateConfig: fields });
       showToast('success', 'Configuration saved successfully!');
-      router.refresh();
+      if (onSave) {
+        onSave(fields);
+      }
     } catch (err) {
       console.error(err);
       showToast('error', 'Failed to save configuration.');
@@ -152,6 +179,9 @@ export default function CanvasEditor({ eventId, title, initialTemplateUrl, initi
       setTemplateUrl(url);
       await CertiGenService.updateEvent(eventId, { templateUrl: url, templateConfig: fields });
       showToast('success', 'Template image updated!');
+      if (onSave) {
+        onSave(fields, url);
+      }
       router.refresh();
     } catch (err) {
       console.error(err);
@@ -164,9 +194,7 @@ export default function CanvasEditor({ eventId, title, initialTemplateUrl, initi
   const handlePreview = async () => {
     if (!templateUrl) return;
     try {
-      const res = await fetch(templateUrl);
-      if (!res.ok) throw new Error('Failed to load template image');
-      const templateImageBytes = await res.arrayBuffer();
+      const templateImageBytes = await fetchImageAsArrayBuffer(templateUrl);
 
       const sampleRecord: Record<string, string> = {};
       const mapping: Record<string, string> = {};
@@ -200,18 +228,54 @@ export default function CanvasEditor({ eventId, title, initialTemplateUrl, initi
     setSelectedId(f.id);
   };
 
-  const updField = (id: string, u: Partial<FieldConfig>) =>
+  const addPopupField = () => {
+    const f: PopupFieldConfig = {
+      id: genId(),
+      type: "popup",
+      label: "Congratulations! 🎉",
+      message: "Thank you for your participation!\n\nYour certificate has been generated. We hope to see you again in our next event.",
+      photoUrl: "",
+      triggerLabel: "Close",
+      timing: "after",
+      requireCheckbox: false,
+      checkboxLabel: "I agree and understand",
+    };
+    setFields((prev) => [...prev, f]);
+    setSelectedId(f.id);
+  };
+
+  const updField = (id: string, u: Partial<TextFieldConfig> | Partial<ImageFieldConfig> | Partial<PopupFieldConfig>) =>
     setFields((prev) => prev.map((f) => (f.id === id ? { ...f, ...u } : f)) as FieldConfig[]);
 
-  // Dragging logic
+  // Upload popup photo to Firebase Storage
+  const handlePopupPhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !selectedId) return;
+    setIsUploadingPopupPhoto(true);
+    try {
+      const url = await CertiGenService.uploadTemplateImage(eventId, file);
+      updField(selectedId, { photoUrl: url } as Partial<PopupFieldConfig>);
+      showToast('success', 'Photo uploaded!');
+    } catch (err) {
+      showToast('error', 'Failed to upload photo.');
+    } finally {
+      setIsUploadingPopupPhoto(false);
+      if (popupPhotoRef.current) popupPhotoRef.current.value = '';
+    }
+  };
+
+  // Dragging logic (only for text/image fields, not popup)
   const dragInfo = useRef<{ id: string; startX: number; startY: number; initX: number; initY: number } | null>(null);
 
   const handlePointerDown = (e: React.PointerEvent, id: string) => {
     e.stopPropagation();
+    const f = fields.find(f => f.id === id);
+    if (!f || f.type === 'popup') {
+      setSelectedId(id);
+      return;
+    }
     e.currentTarget.setPointerCapture(e.pointerId);
     setSelectedId(id);
-    const f = fields.find(f => f.id === id);
-    if (!f) return;
     dragInfo.current = { id, startX: e.clientX, startY: e.clientY, initX: f.x, initY: f.y };
   };
 
@@ -266,6 +330,9 @@ export default function CanvasEditor({ eventId, title, initialTemplateUrl, initi
             <span className="ml-1.5 hidden sm:inline">Preview PDF</span>
           </Button>
           <div className="w-px h-6 bg-gray-200 mx-1" />
+          <Button color="tertiary" size="sm" onClick={addPopupField} isDisabled={!templateUrl} className="text-violet-600 bg-violet-50 hover:bg-violet-100 border border-violet-200">
+            <MessageSquare className="w-4 h-4 mr-1.5" /> Pop-Up
+          </Button>
           <Button color="secondary" size="sm" onClick={addTextField} isDisabled={!templateUrl}>
             <Type className="w-4 h-4 mr-1.5" /> Add Text
           </Button>
@@ -296,7 +363,8 @@ export default function CanvasEditor({ eventId, title, initialTemplateUrl, initi
             >
               <img src={templateUrl} alt="Template" className="w-full h-full object-fill pointer-events-none" onLoad={handleImgLoad} />
               
-              {fields.map(f => (
+              {/* Render text/image fields on canvas */}
+              {fields.filter(f => f.type !== 'popup').map(f => (
                 <div
                   key={f.id}
                   onPointerDown={(e) => handlePointerDown(e, f.id)}
@@ -305,8 +373,8 @@ export default function CanvasEditor({ eventId, title, initialTemplateUrl, initi
                   className={`absolute flex items-center justify-center cursor-move whitespace-nowrap group
                     ${selectedId === f.id ? 'ring-2 ring-primary-500 ring-offset-1 bg-primary-50/10' : 'hover:ring-2 hover:ring-gray-300 hover:ring-offset-1 hover:bg-black/5'}`}
                   style={{
-                    left: `${f.x}%`,
-                    top: `${f.y}%`,
+                    left: `${(f as any).x}%`,
+                    top: `${(f as any).y}%`,
                     transform: f.type === 'text' && f.textAlign === 'center' ? 'translate(-50%, -50%)' 
                               : f.type === 'text' && f.textAlign === 'right' ? 'translate(-100%, -50%)'
                               : 'translate(0, -50%)',
@@ -317,7 +385,6 @@ export default function CanvasEditor({ eventId, title, initialTemplateUrl, initi
                     zIndex: selectedId === f.id ? 10 : 1,
                   }}
                 >
-                  {/* Subtle origin marker for the selected item to help with alignment */}
                   {selectedId === f.id && (
                     <div className="absolute w-2 h-2 bg-primary-500 rounded-full" 
                          style={{ 
@@ -327,6 +394,22 @@ export default function CanvasEditor({ eventId, title, initialTemplateUrl, initi
                     />
                   )}
                   {f.type === 'text' ? (f.label || "Sample Text") : "Image"}
+                </div>
+              ))}
+
+              {/* Popup fields shown as fixed badge in corner */}
+              {fields.filter(f => f.type === 'popup').map((f, idx) => (
+                <div
+                  key={f.id}
+                  onClick={(e) => { e.stopPropagation(); setSelectedId(f.id); }}
+                  className={`absolute flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold cursor-pointer transition-all
+                    ${selectedId === f.id 
+                      ? 'bg-violet-600 text-white ring-2 ring-violet-400 ring-offset-1' 
+                      : 'bg-violet-100 text-violet-700 hover:bg-violet-200'}`}
+                  style={{ zIndex: 10, bottom: `${12 + idx * 36}px`, right: '12px' }}
+                >
+                  <MessageSquare className="w-3 h-3" />
+                  {(f as PopupFieldConfig).timing === 'before' ? '⏮ On Page Load' : '⏭ After Download'} · {(f as PopupFieldConfig).label}
                 </div>
               ))}
             </div>
@@ -347,7 +430,7 @@ export default function CanvasEditor({ eventId, title, initialTemplateUrl, initi
                   {fields.length === 0 ? (
                     <div className="text-center text-sm text-gray-400 mt-8">
                       <GripHorizontal className="w-8 h-8 mx-auto mb-3 text-gray-200" />
-                      No fields added yet. Click "Add Text" to start.
+                      No fields added yet. Click "Add Text" or "Pop-Up" to start.
                     </div>
                   ) : (
                     <div className="space-y-2">
@@ -358,13 +441,167 @@ export default function CanvasEditor({ eventId, title, initialTemplateUrl, initi
                           className="w-full flex items-center justify-between p-3 bg-white border border-gray-200 rounded-lg shadow-sm hover:border-primary-500 hover:ring-1 hover:ring-primary-500 transition-all text-left group"
                         >
                           <div className="flex items-center">
-                            <Type className="w-4 h-4 text-gray-400 mr-3 group-hover:text-primary-500" />
+                            {f.type === 'popup' 
+                              ? <MessageSquare className="w-4 h-4 text-violet-500 mr-3" />
+                              : <Type className="w-4 h-4 text-gray-400 mr-3 group-hover:text-primary-500" />
+                            }
                             <span className="text-sm font-medium text-gray-700">{f.label || "Unnamed Field"}</span>
                           </div>
+                          {f.type === 'popup' && (
+                            <span className="text-xs px-2 py-0.5 rounded-full bg-violet-100 text-violet-600 font-medium">pop-up</span>
+                          )}
                         </button>
                       ))}
                     </div>
                   )}
+                </div>
+              </div>
+            ) : selected.type === "popup" ? (
+              /* ── Popup field properties ── */
+              <div className="p-6 space-y-5">
+                <div className="p-3 bg-violet-50 rounded-xl border border-violet-100 text-xs text-violet-700 leading-relaxed">
+                  <strong>Pop-Up Message</strong> — configure when this modal appears relative to the certificate download.
+                </div>
+
+                {/* Timing toggle */}
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold text-gray-600 uppercase tracking-wider">Show Pop-Up</Label>
+                  <div className="flex rounded-lg border border-gray-200 overflow-hidden bg-gray-50">
+                    <button
+                      type="button"
+                      onClick={() => updField(selected.id, { timing: 'before' } as Partial<PopupFieldConfig>)}
+                      className={`flex-1 py-2.5 text-sm font-medium flex items-center justify-center gap-2 transition-all ${
+                        selected.timing === 'before'
+                          ? 'bg-violet-600 text-white shadow-sm'
+                          : 'text-gray-500 hover:bg-gray-100'
+                      }`}
+                    >
+                      ⏮ On Page Load
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => updField(selected.id, { timing: 'after' } as Partial<PopupFieldConfig>)}
+                      className={`flex-1 py-2.5 text-sm font-medium flex items-center justify-center gap-2 transition-all ${
+                        selected.timing === 'after'
+                          ? 'bg-violet-600 text-white shadow-sm'
+                          : 'text-gray-500 hover:bg-gray-100'
+                      }`}
+                    >
+                      ⏭ After Download
+                    </button>
+                  </div>
+                  <p className="text-xs text-gray-400">
+                    {selected.timing === 'before'
+                      ? 'The modal appears immediately when the participant visits the claim link.'
+                      : 'The certificate downloads immediately, then the modal appears.'}
+                  </p>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold text-gray-600 uppercase tracking-wider">Modal Title</Label>
+                  <Input value={selected.label} onChange={(v: any) => updField(selected.id, { label: typeof v === 'string' ? v : v?.target?.value || '' })} className="bg-gray-50" placeholder="e.g. Congratulations! 🎉" />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold text-gray-600 uppercase tracking-wider">Message Body</Label>
+                  <textarea
+                    value={selected.message}
+                    onChange={(e) => updField(selected.id, { message: e.target.value })}
+                    rows={5}
+                    placeholder="Enter the message you want participants to see..."
+                    className="w-full border border-gray-300 bg-gray-50 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all resize-none leading-relaxed"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold text-gray-600 uppercase tracking-wider">Button Label</Label>
+                  <Input
+                    value={selected.triggerLabel}
+                    onChange={(v: any) => updField(selected.id, { triggerLabel: typeof v === 'string' ? v : v?.target?.value || '' } as Partial<PopupFieldConfig>)}
+                    placeholder="e.g. Continue, Download, Close"
+                    className="bg-white"
+                  />
+                </div>
+
+                <div className="pt-4 border-t border-gray-100 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-sm font-semibold text-gray-700">Require Checkbox</Label>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={selected.requireCheckbox || false}
+                        onChange={(e) => updField(selected.id, { requireCheckbox: e.target.checked } as Partial<PopupFieldConfig>)}
+                        className="sr-only peer"
+                      />
+                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-violet-600"></div>
+                    </label>
+                  </div>
+                  <p className="text-xs text-gray-500">
+                    If enabled, the participant must check a box to enable the button.
+                  </p>
+
+                  {selected.requireCheckbox && (
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-semibold text-gray-600 uppercase tracking-wider">Checkbox Text</Label>
+                      <Input
+                        value={selected.checkboxLabel || ""}
+                        onChange={(v: any) => updField(selected.id, { checkboxLabel: typeof v === 'string' ? v : v?.target?.value || '' } as Partial<PopupFieldConfig>)}
+                        placeholder="e.g. I agree to the terms and conditions"
+                        className="bg-white"
+                      />
+                    </div>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-xs font-semibold text-gray-600 uppercase tracking-wider">Photo (optional)</Label>
+                  {selected.photoUrl ? (
+                    <div className="relative group">
+                      <img
+                        src={selected.photoUrl}
+                        alt="Popup photo"
+                        className="w-full h-28 object-cover rounded-xl border border-gray-200"
+                      />
+                      <button
+                        onClick={() => updField(selected.id, { photoUrl: '' })}
+                        className="absolute top-2 right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-xs"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => popupPhotoRef.current?.click()}
+                      disabled={isUploadingPopupPhoto}
+                      className="w-full border-2 border-dashed border-gray-200 rounded-xl py-5 flex flex-col items-center gap-2 text-gray-400 hover:border-violet-400 hover:text-violet-500 transition-all"
+                    >
+                      {isUploadingPopupPhoto 
+                        ? <Loader2 className="w-6 h-6 animate-spin" />
+                        : <ImagePlus className="w-6 h-6" />
+                      }
+                      <span className="text-xs font-medium">
+                        {isUploadingPopupPhoto ? "Uploading..." : "Upload a small image"}
+                      </span>
+                    </button>
+                  )}
+                  <input
+                    ref={popupPhotoRef}
+                    type="file"
+                    accept="image/png, image/jpeg, image/webp"
+                    className="hidden"
+                    onChange={handlePopupPhotoUpload}
+                  />
+                </div>
+
+                <hr className="border-gray-100" />
+
+                <div>
+                  <Button color="tertiary" className="w-full text-red-600 bg-red-50 hover:bg-red-100 border border-red-200" onClick={() => {
+                    setFields(fields.filter(f => f.id !== selected.id));
+                    setSelectedId(null);
+                  }}>
+                    <Trash2 className="w-4 h-4 mr-2" /> Delete Pop-Up
+                  </Button>
                 </div>
               </div>
             ) : selected.type === "text" && (
@@ -407,7 +644,7 @@ export default function CanvasEditor({ eventId, title, initialTemplateUrl, initi
                   </div>
 
                   <div className="space-y-1.5">
-                    <Label className="text-xs font-semibold text-gray-600 uppercase tracking-wider">Alignment & Weight</Label>
+                    <Label className="text-xs font-semibold text-gray-600 uppercase tracking-wider">Alignment &amp; Weight</Label>
                     <div className="flex items-center gap-2 bg-gray-50 p-1 rounded-lg border border-gray-200">
                       <button onClick={() => updField(selected.id, { textAlign: 'left' })} className={`p-2 rounded flex-1 flex justify-center ${selected.textAlign === 'left' ? 'bg-white shadow-sm text-primary-600' : 'text-gray-500 hover:bg-gray-100'}`} title="Align Left">
                         <AlignLeft className="w-4 h-4" />

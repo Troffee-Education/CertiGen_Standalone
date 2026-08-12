@@ -82,6 +82,34 @@ export class CertiGenAdminService {
     return linkData as AdminMagicLinkModel;
   }
 
+  static async createMagicLinksBulk(linksData: Partial<AdminMagicLinkModel>[]): Promise<AdminMagicLinkModel[]> {
+    const db = await getAdminDb();
+    const results: AdminMagicLinkModel[] = [];
+    const BATCH_SIZE = 400;
+
+    for (let i = 0; i < linksData.length; i += BATCH_SIZE) {
+      const batch = db.batch();
+      const chunk = linksData.slice(i, i + BATCH_SIZE);
+
+      for (const item of chunk) {
+        const docRef = db.collection(MAGIC_LINKS_COLLECTION).doc();
+        const linkData = {
+          emailSent: false,
+          isRevoked: false,
+          isUsed: false,
+          isOneTimeUse: false,
+          ...item,
+          id: docRef.id,
+          createdAt: new Date(),
+        };
+        batch.set(docRef, linkData);
+        results.push(linkData as AdminMagicLinkModel);
+      }
+      await batch.commit();
+    }
+    return results;
+  }
+
   static async getMagicLinkByToken(token: string): Promise<AdminMagicLinkModel | null> {
     const db = await getAdminDb();
     const snap = await db

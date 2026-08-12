@@ -105,6 +105,16 @@ export default function EventHubPage() {
             title={event.title}
             initialTemplateUrl={event.templateUrl || ""}
             initialConfig={event.templateConfig || []}
+            onSave={(updatedConfig, updatedUrl) => {
+              setEvent((prev) => {
+                if (!prev) return null;
+                return {
+                  ...prev,
+                  templateConfig: updatedConfig,
+                  ...(updatedUrl ? { templateUrl: updatedUrl } : {}),
+                };
+              });
+            }}
           />
         </div>
       </div>

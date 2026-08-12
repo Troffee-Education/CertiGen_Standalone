@@ -1,23 +1,7 @@
+import { initializeApp, getApps, cert, getApp } from 'firebase-admin/app';
+import { getFirestore } from 'firebase-admin/firestore';
 import type { Firestore } from 'firebase-admin/firestore';
 import type { App } from 'firebase-admin/app';
-
-// Lazy singleton promises to handle async initialization
-let adminDbPromise: Promise<Firestore> | undefined;
-
-/**
- * Load a module by name in a way that is completely opaque to Turbopack's
- * static analyser. Turbopack rewrites string literals passed to require() /
- * createRequire() and appends a content hash, producing paths like
- * "firebase-admin-a14c8a5423a75469/app" that don't exist at runtime.
- *
- * Using eval() means the bundler never sees the string at build time, so it
- * cannot mangle it. The module is resolved by Node's native require at runtime
- * from the /workspace/node_modules directory where it actually lives.
- */
-function safeRequire(modulePath: string): any {
-    // eslint-disable-next-line no-eval
-    return eval('require')(modulePath);
-}
 
 function getServiceAccount(): any {
     let serviceAccountEnv = process.env.APP_SERVICE_ACCOUNT_KEY;
@@ -39,53 +23,53 @@ function getServiceAccount(): any {
     }
 }
 
-export async function getAdminDb(): Promise<Firestore> {
-    if (adminDbPromise) return adminDbPromise;
+let adminAppPromise: Promise<App> | undefined;
 
-    adminDbPromise = (async () => {
+export async function getAdminApp(): Promise<App> {
+    if (adminAppPromise) return adminAppPromise;
+
+    adminAppPromise = (async () => {
         try {
-            console.log('[AdminSDK] Loading Firestore modules...');
-
-            const { initializeApp, getApps, cert, getApp } = safeRequire('firebase-admin/app');
-            const { getFirestore } = safeRequire('firebase-admin/firestore');
-
+            console.log('[AdminSDK] Initializing Admin App...');
             const serviceAccount = getServiceAccount();
-            console.log('[AdminSDK] Service Account Present:', !!serviceAccount);
-
-            let adminApp: App;
 
             if (!getApps().length) {
-                console.log('[AdminSDK] No existing apps. Initializing new app.');
                 const options: any = {};
-                if (process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID) {
-                    options.projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
-                }
 
                 if (serviceAccount) {
                     console.log('[AdminSDK] Using explicit service account credential.');
                     options.credential = cert(serviceAccount);
+                    options.projectId = serviceAccount.project_id;
+                    if (process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID && serviceAccount.project_id !== process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID) {
+                        console.warn(`[AdminSDK] Service account project_id (${serviceAccount.project_id}) does not match NEXT_PUBLIC_FIREBASE_PROJECT_ID (${process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID}). Overriding options.projectId to match service account.`);
+                    }
                 } else {
                     console.log('[AdminSDK] Using Application Default Credentials (ADC).');
+                    if (process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID) {
+                        options.projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
+                    }
                 }
 
-                adminApp = initializeApp(options);
+                const adminApp = initializeApp(options);
                 console.log('[AdminSDK] App initialized successfully.');
+                return adminApp;
             } else {
                 console.log('[AdminSDK] Using existing app.');
-                adminApp = getApp();
+                return getApp();
             }
-
-            const db = getFirestore(adminApp);
-            console.log('[AdminSDK] Firestore initialized.');
-            return db as Firestore;
         } catch (error) {
-            console.error('[AdminSDK] Initialization Error:', error);
-            adminDbPromise = undefined;
-            throw new Error(`Failed to initialize Firebase Admin SDK: ${error instanceof Error ? error.message : String(error)}`);
+            console.error('[AdminSDK] App Initialization Error:', error);
+            adminAppPromise = undefined;
+            throw error;
         }
     })();
 
-    return adminDbPromise;
+    return adminAppPromise;
+}
+
+export async function getAdminDb(): Promise<Firestore> {
+    const adminApp = await getAdminApp();
+    return getFirestore(adminApp) as Firestore;
 }
 
 // ─── Storage via Google Cloud Storage JSON REST API ───────────────────────────

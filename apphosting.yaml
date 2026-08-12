@@ -1,0 +1,46 @@
+# Settings for Backend (on Cloud Run).
+# See https://firebase.google.com/docs/app-hosting/configure#cloud-run
+runConfig:
+  minInstances: 0
+
+# Environment variables needed during build & runtime for Next.js
+env:
+  - variable: NEXT_PUBLIC_FIREBASE_API_KEY
+    value: "AIzaSyB3rzN_nqiO6VEyNXuC3RVHMuCKuXTwzCQ"
+    availability:
+      - BUILD
+      - RUNTIME
+  - variable: NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
+    value: "certigen-standalone.firebaseapp.com"
+    availability:
+      - BUILD
+      - RUNTIME
+  - variable: NEXT_PUBLIC_FIREBASE_PROJECT_ID
+    value: "certigen-standalone"
+    availability:
+      - BUILD
+      - RUNTIME
+  - variable: NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET
+    value: "certigen-standalone.firebasestorage.app"
+    availability:
+      - BUILD
+      - RUNTIME
+  - variable: NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
+    value: "956908936214"
+    availability:
+      - BUILD
+      - RUNTIME
+  - variable: NEXT_PUBLIC_FIREBASE_APP_ID
+    value: "1:956908936214:web:4516fa35c96b799f3b2937"
+    availability:
+      - BUILD
+      - RUNTIME
+  - variable: NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
+    value: "G-HJHBN7HSY6"
+    availability:
+      - BUILD
+      - RUNTIME
+  - variable: ADMIN_PASSWORD
+    value: "TroasimCertiGen@1"
+    availability:
+      - RUNTIME
