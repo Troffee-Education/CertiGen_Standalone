@@ -28,7 +28,7 @@ export default function CertificateMapStep({
   const mappedCount = textFields.filter((b) => !!mapping[b.id]).length;
 
   return (
-    <div className="max-w-4xl mx-auto py-4 space-y-6">
+    <div className="w-full py-4 space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-6 border-b border-slate-800">
         <div>

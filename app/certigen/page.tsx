@@ -18,7 +18,7 @@ export default async function PublicCertiGenPage({
 
   if (!token && !eventId) {
     return (
-      <div className="min-h-[80vh] flex items-center justify-center p-6">
+      <div className="w-full min-h-[80vh] flex items-center justify-center p-6">
         <div className="bg-slate-900/90 border border-slate-800 p-8 rounded-2xl shadow-2xl text-center max-w-md w-full text-white">
           <h1 className="text-2xl font-bold text-red-400 mb-2">Invalid Link</h1>
           <p className="text-slate-400 text-sm">No token or event ID was provided in the access link.</p>
@@ -34,7 +34,7 @@ export default async function PublicCertiGenPage({
     magicLink = await CertiGenAdminService.getMagicLinkByToken(token);
     if (!magicLink || magicLink.isRevoked) {
       return (
-        <div className="min-h-[80vh] flex items-center justify-center p-6">
+        <div className="w-full min-h-[80vh] flex items-center justify-center p-6">
           <div className="bg-slate-900/90 border border-slate-800 p-8 rounded-2xl shadow-2xl text-center max-w-md w-full text-white">
             <h1 className="text-2xl font-bold text-red-400 mb-2">Access Denied</h1>
             <p className="text-slate-400 text-sm">This magic link is invalid or has been revoked.</p>
@@ -45,7 +45,7 @@ export default async function PublicCertiGenPage({
 
     if (magicLink.expiresAt < Date.now()) {
       return (
-        <div className="min-h-[80vh] flex items-center justify-center p-6">
+        <div className="w-full min-h-[80vh] flex items-center justify-center p-6">
           <div className="bg-slate-900/90 border border-slate-800 p-8 rounded-2xl shadow-2xl text-center max-w-md w-full text-white">
             <h1 className="text-2xl font-bold text-red-400 mb-2">Link Expired</h1>
             <p className="text-slate-400 text-sm">This magic link has expired. Please request a new one.</p>
@@ -61,7 +61,7 @@ export default async function PublicCertiGenPage({
 
   if (!eventData || eventData.isArchived) {
     return (
-      <div className="min-h-[80vh] flex items-center justify-center p-6">
+      <div className="w-full min-h-[80vh] flex items-center justify-center p-6">
         <div className="bg-slate-900/90 border border-slate-800 p-8 rounded-2xl shadow-2xl text-center max-w-md w-full text-white">
           <h1 className="text-2xl font-bold text-amber-400 mb-2">Event Inactive</h1>
           <p className="text-slate-400 text-sm">The associated event is no longer active.</p>
@@ -72,7 +72,7 @@ export default async function PublicCertiGenPage({
 
   if (isTeacherEvent(eventData)) {
     return (
-      <div className="min-h-[80vh] flex items-center justify-center p-6">
+      <div className="w-full min-h-[80vh] flex items-center justify-center p-6">
         <div className="bg-slate-900/90 border border-slate-800 p-8 rounded-2xl shadow-2xl text-center max-w-md w-full text-white">
           <h1 className="text-2xl font-bold text-purple-400 mb-2">Teacher Certificate Event</h1>
           <p className="text-slate-400 text-sm">
@@ -84,48 +84,52 @@ export default async function PublicCertiGenPage({
   }
 
   return (
-    <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
-      {/* Modern Hero Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-slate-900/50 backdrop-blur-md p-6 sm:p-8 rounded-3xl border border-slate-800/80 shadow-xl">
-        <div className="space-y-1.5">
-          <div className="flex items-center gap-2">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs font-semibold uppercase tracking-wider">
+    <div className="w-full min-w-full px-4 sm:px-8 lg:px-12 xl:px-16 py-8 space-y-8 m-0">
+      {/* Full-Width Modern Hero Header */}
+      <div className="w-full flex flex-col md:flex-row md:items-center md:justify-between gap-6 bg-slate-900/70 backdrop-blur-md p-6 sm:p-8 rounded-3xl border border-slate-800/80 shadow-2xl">
+        <div className="space-y-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/30 text-blue-400 text-xs font-bold uppercase tracking-wider">
               <Sparkles className="w-3.5 h-3.5 text-blue-400" />
               CertiGen Event
             </span>
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-semibold">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-semibold">
               <Shield className="w-3.5 h-3.5" />
-              Verified Portal
+              Verified Event Portal
             </span>
           </div>
-          <h1 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
+          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-white tracking-tight">
             {eventData.title}
           </h1>
-          <p className="text-sm text-slate-400">
-            Generate and batch download official student certificates in high-resolution PDF format.
+          <p className="text-sm sm:text-base text-slate-400 max-w-3xl">
+            Upload student rosters, automatically map template columns, and batch download high-resolution certificates.
           </p>
         </div>
 
-        <div className="flex items-center gap-3 self-start sm:self-center">
-          <div className="px-4 py-3 rounded-2xl bg-slate-800/80 border border-slate-700/80 text-right">
-            <span className="text-[11px] text-slate-400 block font-medium">Issue Format</span>
-            <span className="text-sm font-bold text-white flex items-center gap-1.5 justify-end">
-              <FileCheck className="w-4 h-4 text-emerald-400" /> Bulk Student ZIP
+        <div className="flex items-center gap-3 self-start md:self-center">
+          <div className="px-5 py-3.5 rounded-2xl bg-slate-800/90 border border-slate-700/80 text-left md:text-right shadow-inner">
+            <span className="text-[11px] uppercase tracking-wider text-slate-400 block font-semibold">
+              Output Package
+            </span>
+            <span className="text-sm font-bold text-white flex items-center gap-2 md:justify-end mt-0.5">
+              <FileCheck className="w-4 h-4 text-emerald-400" /> High-Speed ZIP Archive
             </span>
           </div>
         </div>
       </div>
 
-      {/* Main Engine Component */}
-      <AdminBulkEngine
-        eventId={eventData.id}
-        magicLinkId={magicLink?.id}
-        adminName={magicLink?.teacherEmail ? magicLink.teacherEmail.split("@")[0] : ""}
-        adminEmail={magicLink?.teacherEmail || ""}
-        templateUrl={eventData.templateUrl}
-        templateConfig={eventData.templateConfig}
-        eventTitle={eventData.title}
-      />
+      {/* Main Full-Width Engine Component */}
+      <div className="w-full min-w-full">
+        <AdminBulkEngine
+          eventId={eventData.id}
+          magicLinkId={magicLink?.id}
+          adminName={magicLink?.teacherEmail ? magicLink.teacherEmail.split("@")[0] : ""}
+          adminEmail={magicLink?.teacherEmail || ""}
+          templateUrl={eventData.templateUrl}
+          templateConfig={eventData.templateConfig}
+          eventTitle={eventData.title}
+        />
+      </div>
     </div>
   );
 }

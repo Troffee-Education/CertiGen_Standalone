@@ -22,8 +22,8 @@ type Props = {
 
 export default function WizardStepBar({ step, steps = DEFAULT_STEPS }: Props) {
   return (
-    <div className="w-full bg-slate-900/60 dark:bg-slate-950/60 backdrop-blur-md border-b border-slate-800 px-6 sm:px-8 py-4">
-      <div className="max-w-5xl mx-auto flex items-center justify-between">
+    <div className="w-full bg-slate-900/60 dark:bg-slate-950/60 backdrop-blur-md border-b border-slate-800 px-6 sm:px-10 lg:px-14 py-4">
+      <div className="w-full flex items-center justify-between">
         {steps.map((s, i) => {
           const stepNum = i + 1;
           const isCompleted = step > stepNum;

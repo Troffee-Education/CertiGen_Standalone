@@ -21,7 +21,7 @@ export default function CertificateProgressStep({
   onRestart,
 }: Props) {
   return (
-    <div className="max-w-2xl mx-auto py-12 text-center space-y-6">
+    <div className="w-full max-w-4xl mx-auto py-12 text-center space-y-6">
       {isSuccess ? (
         <div className="space-y-6 animate-in fade-in zoom-in duration-500 bg-slate-900/60 p-8 rounded-3xl border border-emerald-500/30 shadow-2xl">
           <div className="mx-auto w-20 h-20 bg-emerald-500/20 text-emerald-400 rounded-2xl flex items-center justify-center border border-emerald-500/40 shadow-lg shadow-emerald-500/20">
