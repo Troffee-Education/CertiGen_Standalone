@@ -57,7 +57,7 @@ export default function AdminBulkEngine({
   const [teacherEmail, setTeacherEmail] = useState(adminEmail || "");
   const [schoolName, setSchoolName] = useState("");
   const [teacherPhone, setTeacherPhone] = useState("");
-  const [isGuideOpen, setIsGuideOpen] = useState(false);
+  const [isGuideOpen, setIsGuideOpen] = useState(true);
 
   const {
     csvHeaders,

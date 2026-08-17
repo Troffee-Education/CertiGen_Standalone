@@ -17,6 +17,7 @@ import {
   ArrowLeft,
   UploadCloud,
   FileCheck,
+  ShieldCheck,
 } from "lucide-react";
 import type { FieldConfig } from "./CanvasEditor";
 import {
@@ -44,52 +45,52 @@ export default function BulkSubmissionGuideModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/75 backdrop-blur-md animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-[9999] w-screen h-screen min-h-screen bg-slate-950/95 backdrop-blur-2xl flex flex-col justify-between p-4 sm:p-8 lg:p-12 overflow-hidden animate-in fade-in duration-300">
       <div
-        className="bg-slate-900 border border-slate-700/80 rounded-3xl shadow-2xl max-w-3xl w-full max-h-[92vh] flex flex-col overflow-hidden text-slate-100 animate-in zoom-in-95 duration-200"
+        className="w-full max-w-6xl mx-auto h-full flex flex-col bg-slate-900 border border-slate-700/80 rounded-3xl shadow-2xl overflow-hidden text-slate-100 animate-in zoom-in-95 duration-200"
         role="dialog"
         aria-modal="true"
       >
-        {/* Header with Step Wizard Indicator */}
-        <div className="px-6 sm:px-8 py-5 border-b border-slate-800 bg-gradient-to-r from-slate-900 via-blue-950/40 to-indigo-950/40 flex items-center justify-between">
-          <div className="flex items-center gap-3.5">
-            <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 text-white flex items-center justify-center shadow-lg shadow-blue-500/20">
-              <BookOpen className="w-5 h-5" />
+        {/* Full-Width Header with Step Wizard Indicator */}
+        <div className="px-6 sm:px-10 py-5 border-b border-slate-800 bg-gradient-to-r from-slate-900 via-blue-950/40 to-indigo-950/40 flex items-center justify-between flex-shrink-0">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 text-white flex items-center justify-center shadow-lg shadow-blue-500/25">
+              <BookOpen className="w-6 h-6" />
             </div>
             <div>
-              <div className="flex items-center gap-2">
-                <h3 className="text-lg font-bold text-white">
-                  Step-by-Step Upload Guide
+              <div className="flex items-center gap-2.5">
+                <h3 className="text-xl sm:text-2xl font-extrabold text-white tracking-tight">
+                  Bulk Submission Quick Manual
                 </h3>
-                <span className="text-[11px] font-bold uppercase tracking-wider bg-blue-500/20 text-blue-300 border border-blue-500/30 px-2 py-0.5 rounded-full">
+                <span className="text-xs font-bold uppercase tracking-wider bg-blue-500/20 text-blue-300 border border-blue-500/30 px-3 py-0.5 rounded-full">
                   Step {currentStep} of 3
                 </span>
               </div>
-              <p className="text-xs text-slate-400 mt-0.5">
-                {currentStep === 1 && "Step 1: Download your ready-to-use template"}
-                {currentStep === 2 && "Step 2: Prepare & format your student list"}
-                {currentStep === 3 && "Step 3: Upload and generate bulk certificates"}
+              <p className="text-xs sm:text-sm text-slate-400 mt-0.5">
+                {currentStep === 1 && "Step 1: Download the official sample template"}
+                {currentStep === 2 && "Step 2: Format your columns & preview dummy data"}
+                {currentStep === 3 && "Step 3: Upload student file and generate certificates"}
               </p>
             </div>
           </div>
 
           <button
             onClick={onClose}
-            className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl transition-colors cursor-pointer"
+            className="p-2.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-2xl transition-colors cursor-pointer"
             aria-label="Close guide"
           >
-            <X className="w-5 h-5" />
+            <X className="w-6 h-6" />
           </button>
         </div>
 
-        {/* Step Progress Pills Bar */}
-        <div className="grid grid-cols-3 border-b border-slate-800 bg-slate-950/60 p-2 gap-2 text-xs font-semibold">
+        {/* Step Progress Navigation Bar */}
+        <div className="grid grid-cols-3 border-b border-slate-800 bg-slate-950/70 p-2.5 sm:p-3 gap-2 sm:gap-4 text-xs sm:text-sm font-bold flex-shrink-0">
           <button
             type="button"
             onClick={() => setCurrentStep(1)}
-            className={`py-2 px-3 rounded-xl flex items-center justify-center gap-2 transition-all cursor-pointer ${
+            className={`py-2.5 px-3 rounded-2xl flex items-center justify-center gap-2 transition-all cursor-pointer ${
               currentStep === 1
-                ? "bg-blue-600 text-white shadow-md shadow-blue-500/20"
+                ? "bg-blue-600 text-white shadow-lg shadow-blue-500/25 ring-2 ring-blue-400/30"
                 : currentStep > 1
                 ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
                 : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/50"
@@ -102,9 +103,9 @@ export default function BulkSubmissionGuideModal({
           <button
             type="button"
             onClick={() => setCurrentStep(2)}
-            className={`py-2 px-3 rounded-xl flex items-center justify-center gap-2 transition-all cursor-pointer ${
+            className={`py-2.5 px-3 rounded-2xl flex items-center justify-center gap-2 transition-all cursor-pointer ${
               currentStep === 2
-                ? "bg-blue-600 text-white shadow-md shadow-blue-500/20"
+                ? "bg-blue-600 text-white shadow-lg shadow-blue-500/25 ring-2 ring-blue-400/30"
                 : currentStep > 2
                 ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
                 : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/50"
@@ -117,9 +118,9 @@ export default function BulkSubmissionGuideModal({
           <button
             type="button"
             onClick={() => setCurrentStep(3)}
-            className={`py-2 px-3 rounded-xl flex items-center justify-center gap-2 transition-all cursor-pointer ${
+            className={`py-2.5 px-3 rounded-2xl flex items-center justify-center gap-2 transition-all cursor-pointer ${
               currentStep === 3
-                ? "bg-blue-600 text-white shadow-md shadow-blue-500/20"
+                ? "bg-blue-600 text-white shadow-lg shadow-blue-500/25 ring-2 ring-blue-400/30"
                 : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/50"
             }`}
           >
@@ -129,58 +130,58 @@ export default function BulkSubmissionGuideModal({
         </div>
 
         {/* Modal Step Content Body */}
-        <div className="p-6 sm:p-8 overflow-y-auto space-y-6 flex-1 text-sm">
+        <div className="p-6 sm:p-10 overflow-y-auto space-y-8 flex-1 text-sm">
           {/* STEP 1: DOWNLOAD TEMPLATE */}
           {currentStep === 1 && (
-            <div className="space-y-6 animate-in fade-in duration-200">
-              <div className="text-center space-y-2 max-w-lg mx-auto">
-                <div className="mx-auto w-16 h-16 rounded-2xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center shadow-lg shadow-emerald-500/10">
-                  <FileSpreadsheet className="w-8 h-8" />
+            <div className="space-y-8 animate-in fade-in duration-200 max-w-4xl mx-auto">
+              <div className="text-center space-y-2 max-w-2xl mx-auto">
+                <div className="mx-auto w-20 h-20 rounded-3xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center shadow-xl shadow-emerald-500/10 mb-3">
+                  <FileSpreadsheet className="w-10 h-10" />
                 </div>
-                <h4 className="text-xl font-extrabold text-white">
-                  Step 1: Download Sample Template
+                <h4 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
+                  Step 1: Download the Sample Spreadsheet
                 </h4>
-                <p className="text-xs text-slate-300 leading-relaxed">
+                <p className="text-sm text-slate-300 leading-relaxed">
                   Start by downloading our formatted dummy spreadsheet template. It is pre-configured with all the fields required for this certificate event.
                 </p>
               </div>
 
-              {/* Download cards */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-xl mx-auto">
-                <div className="p-5 rounded-2xl bg-slate-800/80 border border-slate-700 space-y-3 text-center flex flex-col justify-between hover:border-emerald-500/50 transition-colors">
-                  <div className="space-y-1">
+              {/* Download Options Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 max-w-2xl mx-auto pt-2">
+                <div className="p-6 rounded-3xl bg-slate-800/80 border border-slate-700 space-y-4 text-center flex flex-col justify-between hover:border-emerald-500/50 hover:shadow-xl hover:shadow-emerald-500/5 transition-all">
+                  <div className="space-y-2">
                     <span className="text-xs font-bold text-emerald-400 uppercase tracking-wider block">
                       Recommended
                     </span>
-                    <h5 className="font-bold text-white text-base">Excel Spreadsheet (.xlsx)</h5>
-                    <p className="text-[11px] text-slate-400">
-                      Standard Microsoft Excel workbook with pre-styled column headers.
+                    <h5 className="font-extrabold text-white text-lg">Excel Spreadsheet (.xlsx)</h5>
+                    <p className="text-xs text-slate-400">
+                      Standard Microsoft Excel workbook with pre-styled column headers and sample rows.
                     </p>
                   </div>
                   <button
                     type="button"
                     onClick={() => downloadSampleExcel(templateConfig, eventTitle)}
-                    className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-md shadow-emerald-600/20 transition-all cursor-pointer"
+                    className="w-full inline-flex items-center justify-center gap-2.5 px-5 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold shadow-lg shadow-emerald-600/20 transition-all hover:scale-102 cursor-pointer"
                   >
                     <Download className="w-4 h-4" />
-                    Download Sample .xlsx
+                    Download Sample Excel (.xlsx)
                   </button>
                 </div>
 
-                <div className="p-5 rounded-2xl bg-slate-800/80 border border-slate-700 space-y-3 text-center flex flex-col justify-between hover:border-blue-500/50 transition-colors">
-                  <div className="space-y-1">
+                <div className="p-6 rounded-3xl bg-slate-800/80 border border-slate-700 space-y-4 text-center flex flex-col justify-between hover:border-blue-500/50 hover:shadow-xl hover:shadow-blue-500/5 transition-all">
+                  <div className="space-y-2">
                     <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">
                       Universal
                     </span>
-                    <h5 className="font-bold text-white text-base">Comma-Separated (.csv)</h5>
-                    <p className="text-[11px] text-slate-400">
+                    <h5 className="font-extrabold text-white text-lg">Comma-Separated (.csv)</h5>
+                    <p className="text-xs text-slate-400">
                       Compatible with Google Sheets, Apple Numbers, and text editors.
                     </p>
                   </div>
                   <button
                     type="button"
                     onClick={() => downloadSampleCsv(templateConfig, eventTitle)}
-                    className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold transition-all cursor-pointer"
+                    className="w-full inline-flex items-center justify-center gap-2.5 px-5 py-3 rounded-2xl bg-slate-700 hover:bg-slate-600 text-white text-sm font-bold transition-all hover:scale-102 cursor-pointer"
                   >
                     <FileText className="w-4 h-4" />
                     Download Sample .csv
@@ -188,10 +189,10 @@ export default function BulkSubmissionGuideModal({
                 </div>
               </div>
 
-              <div className="p-4 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-200 text-xs flex items-center gap-3">
+              <div className="p-4 rounded-2xl bg-blue-500/10 border border-blue-500/20 text-blue-200 text-xs sm:text-sm flex items-center gap-3 max-w-2xl mx-auto">
                 <Lightbulb className="w-5 h-5 text-blue-400 flex-shrink-0" />
                 <span>
-                  Already have your student list in another spreadsheet? Click <strong>Next</strong> to see how to structure your headers for automatic column mapping.
+                  Already have your student list in another spreadsheet? Click <strong>Next Step</strong> to see how to format your headers for automatic column detection.
                 </span>
               </div>
             </div>
@@ -199,86 +200,86 @@ export default function BulkSubmissionGuideModal({
 
           {/* STEP 2: FORMATTING RULES & INTERACTIVE TABLE PREVIEW */}
           {currentStep === 2 && (
-            <div className="space-y-6 animate-in fade-in duration-200">
+            <div className="space-y-6 animate-in fade-in duration-200 max-w-5xl mx-auto">
               <div className="space-y-1">
-                <h4 className="text-lg font-bold text-white">
-                  Step 2: Structure Your Columns & Rows
+                <h4 className="text-xl sm:text-2xl font-extrabold text-white">
+                  Step 2: Spreadsheet Formatting Guidelines
                 </h4>
-                <p className="text-xs text-slate-400">
-                  Ensure your spreadsheet strictly adheres to the formatting guidelines below:
+                <p className="text-xs sm:text-sm text-slate-400">
+                  Ensure your file strictly follows these rules to avoid parsing or alignment issues:
                 </p>
               </div>
 
               {/* Rules 3-Grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-                <div className="p-3.5 rounded-xl bg-slate-800/80 border border-slate-700 space-y-1.5">
-                  <div className="flex items-center gap-1.5 font-bold text-emerald-400">
-                    <CheckCircle2 className="w-4 h-4" />
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs sm:text-sm">
+                <div className="p-4 rounded-2xl bg-slate-800/80 border border-slate-700 space-y-2">
+                  <div className="flex items-center gap-2 font-bold text-emerald-400 text-sm">
+                    <CheckCircle2 className="w-5 h-5" />
                     <span>Row 1 = Headers</span>
                   </div>
-                  <p className="text-[11px] text-slate-300">
-                    Top row must contain column titles (e.g. Student Name, School).
+                  <p className="text-xs text-slate-300 leading-relaxed">
+                    The top row must contain column titles (e.g. Student Name, School Name, IC Number).
                   </p>
                 </div>
 
-                <div className="p-3.5 rounded-xl bg-slate-800/80 border border-slate-700 space-y-1.5">
-                  <div className="flex items-center gap-1.5 font-bold text-emerald-400">
-                    <CheckCircle2 className="w-4 h-4" />
+                <div className="p-4 rounded-2xl bg-slate-800/80 border border-slate-700 space-y-2">
+                  <div className="flex items-center gap-2 font-bold text-emerald-400 text-sm">
+                    <CheckCircle2 className="w-5 h-5" />
                     <span>1 Student Per Row</span>
                   </div>
-                  <p className="text-[11px] text-slate-300">
-                    Each subsequent row generates 1 certificate. Empty rows are skipped.
+                  <p className="text-xs text-slate-300 leading-relaxed">
+                    Each subsequent row represents an individual student. Empty rows are skipped automatically.
                   </p>
                 </div>
 
-                <div className="p-3.5 rounded-xl bg-slate-800/80 border border-slate-700 space-y-1.5">
-                  <div className="flex items-center gap-1.5 font-bold text-amber-400">
-                    <AlertCircle className="w-4 h-4" />
+                <div className="p-4 rounded-2xl bg-slate-800/80 border border-slate-700 space-y-2">
+                  <div className="flex items-center gap-2 font-bold text-amber-400 text-sm">
+                    <AlertCircle className="w-5 h-5" />
                     <span>No Merged Cells</span>
                   </div>
-                  <p className="text-[11px] text-slate-300">
-                    Keep the table flat and simple without merged columns or rows.
+                  <p className="text-xs text-slate-300 leading-relaxed">
+                    Keep table cells unmerged and simple to guarantee deterministic text placement.
                   </p>
                 </div>
               </div>
 
               {/* Sample Table Preview */}
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
+              <div className="space-y-3 pt-2">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <span className="text-xs sm:text-sm font-bold text-slate-200 flex items-center gap-2">
                     <Table className="w-4 h-4 text-emerald-400" />
-                    Sample Table Layout (Matching Your Template):
+                    Live Sample Table Layout (Customized to Active Template):
                   </span>
                   <button
                     type="button"
                     onClick={() => downloadSampleExcel(templateConfig, eventTitle)}
-                    className="text-[11px] text-emerald-400 hover:text-emerald-300 underline underline-offset-2 cursor-pointer font-semibold"
+                    className="text-xs text-emerald-400 hover:text-emerald-300 underline underline-offset-2 cursor-pointer font-bold"
                   >
                     Download this sample sheet (.xlsx)
                   </button>
                 </div>
 
-                <div className="border border-slate-800 rounded-xl overflow-hidden shadow-inner bg-slate-950">
-                  <div className="overflow-x-auto max-h-[220px]">
-                    <table className="w-full text-left text-xs border-collapse font-mono">
+                <div className="border border-slate-800 rounded-2xl overflow-hidden shadow-inner bg-slate-950">
+                  <div className="overflow-x-auto max-h-[280px]">
+                    <table className="w-full text-left text-xs sm:text-sm border-collapse font-mono">
                       <thead>
-                        <tr className="bg-blue-600 text-white font-semibold uppercase text-[11px] tracking-wider">
-                          <th className="py-2.5 px-3 text-center border-r border-blue-500 w-10">#</th>
+                        <tr className="bg-blue-600 text-white font-semibold uppercase text-xs tracking-wider">
+                          <th className="py-3 px-3 text-center border-r border-blue-500 w-12">#</th>
                           {headers.map((h, i) => (
-                            <th key={i} className="py-2.5 px-3.5 border-r border-blue-500 last:border-r-0 whitespace-nowrap">
+                            <th key={i} className="py-3 px-4 border-r border-blue-500 last:border-r-0 whitespace-nowrap">
                               {h}
                             </th>
                           ))}
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-slate-800 text-[11px] text-slate-300">
+                      <tbody className="divide-y divide-slate-800 text-xs text-slate-300">
                         {rows.map((row, rowIdx) => (
                           <tr key={rowIdx} className="hover:bg-slate-900/90 transition-colors">
-                            <td className="py-2 px-3 text-center text-slate-500 bg-slate-900/60 font-sans">
+                            <td className="py-2.5 px-3 text-center text-slate-500 bg-slate-900/60 font-sans">
                               {rowIdx + 1}
                             </td>
                             {headers.map((h, colIdx) => (
-                              <td key={colIdx} className="py-2 px-3.5 whitespace-nowrap">
+                              <td key={colIdx} className="py-2.5 px-4 whitespace-nowrap">
                                 {row[h] || "-"}
                               </td>
                             ))}
@@ -294,53 +295,53 @@ export default function BulkSubmissionGuideModal({
 
           {/* STEP 3: UPLOAD & GENERATE */}
           {currentStep === 3 && (
-            <div className="space-y-6 animate-in fade-in duration-200">
-              <div className="text-center space-y-2 max-w-lg mx-auto">
-                <div className="mx-auto w-16 h-16 rounded-2xl bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 flex items-center justify-center shadow-lg shadow-indigo-500/10">
-                  <UploadCloud className="w-8 h-8" />
+            <div className="space-y-8 animate-in fade-in duration-200 max-w-4xl mx-auto">
+              <div className="text-center space-y-2 max-w-2xl mx-auto">
+                <div className="mx-auto w-20 h-20 rounded-3xl bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 flex items-center justify-center shadow-xl shadow-indigo-500/10 mb-3">
+                  <UploadCloud className="w-10 h-10" />
                 </div>
-                <h4 className="text-xl font-extrabold text-white">
+                <h4 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
                   Step 3: Upload & Instant Batch Generation
                 </h4>
-                <p className="text-xs text-slate-300 leading-relaxed">
+                <p className="text-sm text-slate-300 leading-relaxed">
                   You are now ready to generate official certificates for your entire student list!
                 </p>
               </div>
 
-              {/* What happens next */}
-              <div className="space-y-3 max-w-xl mx-auto">
-                <div className="p-4 rounded-xl bg-slate-800/80 border border-slate-700 flex items-start gap-3">
-                  <span className="w-6 h-6 rounded-full bg-blue-500/20 text-blue-400 flex items-center justify-center font-bold text-xs flex-shrink-0 mt-0.5">
+              {/* 3 Step Workflow */}
+              <div className="space-y-4 max-w-2xl mx-auto">
+                <div className="p-5 rounded-2xl bg-slate-800/80 border border-slate-700 flex items-start gap-4">
+                  <span className="w-7 h-7 rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center font-bold text-xs flex-shrink-0 mt-0.5">
                     A
                   </span>
                   <div>
-                    <h5 className="font-bold text-white text-xs">Fill Teacher Details & Upload</h5>
-                    <p className="text-[11px] text-slate-400 mt-0.5">
-                      Enter your teacher info on the main screen and drop your saved <code>.xlsx</code> or <code>.csv</code> file.
+                    <h5 className="font-bold text-white text-sm">Enter Teacher Details & Upload</h5>
+                    <p className="text-xs text-slate-400 mt-0.5 leading-relaxed">
+                      Fill your teacher name and school name on the portal, then drop your completed <code>.xlsx</code> or <code>.csv</code> file.
                     </p>
                   </div>
                 </div>
 
-                <div className="p-4 rounded-xl bg-slate-800/80 border border-slate-700 flex items-start gap-3">
-                  <span className="w-6 h-6 rounded-full bg-indigo-500/20 text-indigo-400 flex items-center justify-center font-bold text-xs flex-shrink-0 mt-0.5">
+                <div className="p-5 rounded-2xl bg-slate-800/80 border border-slate-700 flex items-start gap-4">
+                  <span className="w-7 h-7 rounded-xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center font-bold text-xs flex-shrink-0 mt-0.5">
                     B
                   </span>
                   <div>
-                    <h5 className="font-bold text-white text-xs">Confirm Column Mapping</h5>
-                    <p className="text-[11px] text-slate-400 mt-0.5">
-                      The system automatically matches your columns to certificate placeholders. Click <strong>Preview</strong> to test generate 1 sample.
+                    <h5 className="font-bold text-white text-sm">Verify Column Matching</h5>
+                    <p className="text-xs text-slate-400 mt-0.5 leading-relaxed">
+                      Our system automatically matches your columns to certificate placeholders. Click <strong>Preview</strong> to test generate 1 sample.
                     </p>
                   </div>
                 </div>
 
-                <div className="p-4 rounded-xl bg-slate-800/80 border border-slate-700 flex items-start gap-3">
-                  <span className="w-6 h-6 rounded-full bg-purple-500/20 text-purple-400 flex items-center justify-center font-bold text-xs flex-shrink-0 mt-0.5">
+                <div className="p-5 rounded-2xl bg-slate-800/80 border border-slate-700 flex items-start gap-4">
+                  <span className="w-7 h-7 rounded-xl bg-purple-500/20 text-purple-400 flex items-center justify-center font-bold text-xs flex-shrink-0 mt-0.5">
                     C
                   </span>
                   <div>
-                    <h5 className="font-bold text-white text-xs">High-Speed ZIP Download</h5>
-                    <p className="text-[11px] text-slate-400 mt-0.5">
-                      Click <strong>Start Generating</strong> to process all student certificates in seconds into a single ZIP archive!
+                    <h5 className="font-bold text-white text-sm">Download Complete ZIP Archive</h5>
+                    <p className="text-xs text-slate-400 mt-0.5 leading-relaxed">
+                      Click <strong>Start Generating</strong> to process all student certificates in seconds into a single, high-resolution ZIP archive!
                     </p>
                   </div>
                 </div>
@@ -350,13 +351,13 @@ export default function BulkSubmissionGuideModal({
         </div>
 
         {/* Modal Footer with Back / Next Navigation */}
-        <div className="px-6 sm:px-8 py-4 border-t border-slate-800 bg-slate-950 flex items-center justify-between">
+        <div className="px-6 sm:px-10 py-5 border-t border-slate-800 bg-slate-950 flex items-center justify-between flex-shrink-0">
           <div>
             {currentStep > 1 ? (
               <button
                 type="button"
                 onClick={() => setCurrentStep((prev) => (prev - 1) as 1 | 2 | 3)}
-                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold transition-colors cursor-pointer"
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs sm:text-sm font-semibold transition-colors cursor-pointer"
               >
                 <ArrowLeft className="w-4 h-4" />
                 Previous Step
@@ -365,19 +366,19 @@ export default function BulkSubmissionGuideModal({
               <button
                 type="button"
                 onClick={onClose}
-                className="px-4 py-2 rounded-xl text-slate-400 hover:text-slate-200 text-xs font-medium transition-colors cursor-pointer"
+                className="px-5 py-2.5 rounded-2xl text-slate-400 hover:text-slate-200 text-xs sm:text-sm font-medium transition-colors cursor-pointer"
               >
                 Skip & Close
               </button>
             )}
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-4">
             {currentStep < 3 ? (
               <button
                 type="button"
                 onClick={() => setCurrentStep((prev) => (prev + 1) as 1 | 2 | 3)}
-                className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold shadow-md shadow-blue-500/20 transition-all cursor-pointer"
+                className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white text-xs sm:text-sm font-bold shadow-lg shadow-blue-500/25 transition-all cursor-pointer"
               >
                 Next Step
                 <ArrowRight className="w-4 h-4" />
@@ -386,9 +387,9 @@ export default function BulkSubmissionGuideModal({
               <button
                 type="button"
                 onClick={onClose}
-                className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-lg shadow-emerald-500/20 transition-all hover:scale-102 cursor-pointer"
+                className="inline-flex items-center gap-2 px-8 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs sm:text-sm font-bold shadow-xl shadow-emerald-500/25 transition-all hover:scale-102 cursor-pointer"
               >
-                <CheckCircle2 className="w-4 h-4" />
+                <CheckCircle2 className="w-5 h-5" />
                 Got it, Start Uploading!
               </button>
             )}
