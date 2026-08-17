@@ -15,7 +15,6 @@ import {
   School,
   Mail,
   Phone,
-  Table,
   ArrowRight,
   ShieldCheck,
 } from "lucide-react";
@@ -27,7 +26,6 @@ import CertificateMapStep from "./CertificateMapStep";
 import CertificateProgressStep from "./CertificateProgressStep";
 import BulkSubmissionGuideModal from "./BulkSubmissionGuideModal";
 import {
-  getSampleTableData,
   downloadSampleExcel,
   downloadSampleCsv,
 } from "@/lib/certigen/sample-template-generator";
@@ -60,8 +58,6 @@ export default function AdminBulkEngine({
   const [schoolName, setSchoolName] = useState("");
   const [teacherPhone, setTeacherPhone] = useState("");
   const [isGuideOpen, setIsGuideOpen] = useState(false);
-
-  const { headers: sampleHeaders, rows: sampleRows } = getSampleTableData(templateConfig);
 
   const {
     csvHeaders,
@@ -119,339 +115,202 @@ export default function AdminBulkEngine({
   };
 
   return (
-    <div className="w-full bg-slate-900/90 dark:bg-slate-950/90 backdrop-blur-xl rounded-3xl shadow-2xl border border-slate-800 overflow-hidden text-white">
-      {/* Sleek Step Progress Header */}
+    <div className="w-full bg-slate-900/80 backdrop-blur-xl rounded-3xl shadow-2xl border border-slate-800 overflow-hidden text-white">
+      {/* Step Progress Header */}
       <WizardStepBar step={step} />
 
-      <div className="p-6 sm:p-8 lg:p-10">
+      <div className="p-6 sm:p-10 lg:p-12">
         {step === 1 && (
-          <div className="space-y-8">
-            {/* Top Info Header Bar */}
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 pb-6 border-b border-slate-800/80">
-              <div className="space-y-1">
-                <div className="flex items-center gap-2">
-                  <span className="px-2.5 py-0.5 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30 text-xs font-semibold uppercase tracking-wider">
-                    Bulk Student Portal
-                  </span>
-                  <span className="text-slate-500">•</span>
-                  <span className="text-xs text-slate-400">
-                    Maximum <strong className="text-slate-200">6,000 students</strong> per batch
-                  </span>
+          <div className="space-y-8 max-w-6xl mx-auto">
+            {/* Pop-Out Guide Launcher Banner */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 sm:p-6 rounded-2xl bg-gradient-to-r from-blue-900/40 via-indigo-900/30 to-purple-900/20 border border-blue-500/30 shadow-lg shadow-blue-500/5">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 text-white flex items-center justify-center shadow-md shadow-blue-500/20 flex-shrink-0">
+                  <BookOpen className="w-6 h-6" />
                 </div>
-                <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">
-                  Prepare & Upload Student List
-                </h2>
+                <div className="space-y-0.5">
+                  <h3 className="text-base sm:text-lg font-bold text-white flex items-center gap-2">
+                    Need Help Preparing Your Student Spreadsheet?
+                  </h3>
+                  <p className="text-xs sm:text-sm text-slate-300">
+                    Open our interactive 3-step guide for formatting rules, sample data preview, and template downloads.
+                  </p>
+                </div>
               </div>
 
-              <div className="flex items-center gap-3">
-                <button
-                  type="button"
-                  onClick={() => downloadSampleExcel(templateConfig, eventTitle)}
-                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-lg shadow-emerald-600/20 transition-all hover:scale-[1.02] cursor-pointer"
-                >
-                  <FileSpreadsheet className="w-4 h-4" />
-                  Download Sample Excel (.xlsx)
-                </button>
+              <div className="flex items-center gap-3 self-start sm:self-center flex-shrink-0">
                 <button
                   type="button"
                   onClick={() => setIsGuideOpen(true)}
-                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-semibold transition-colors cursor-pointer"
+                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs sm:text-sm font-bold shadow-lg shadow-blue-600/20 transition-all hover:scale-102 cursor-pointer"
                 >
-                  <BookOpen className="w-4 h-4 text-blue-400" />
-                  View Guide
+                  <Sparkles className="w-4 h-4" />
+                  Open Step-by-Step Guide
                 </button>
               </div>
             </div>
 
-            {/* 2-Column Wide Grid Layout */}
+            {/* Main Form & Upload Cards Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-              {/* LEFT COLUMN (6 Cols): Teacher Information & File Upload */}
-              <div className="lg:col-span-6 space-y-6">
-                {/* Teacher Profile Card */}
-                {isPublicMode && (
-                  <div className="p-6 rounded-2xl bg-slate-900/60 border border-slate-800 space-y-4 shadow-sm">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2.5">
-                        <div className="w-8 h-8 rounded-lg bg-blue-500/20 text-blue-400 flex items-center justify-center">
-                          <User className="w-4 h-4" />
-                        </div>
-                        <div>
-                          <h3 className="text-sm font-bold text-white uppercase tracking-wider">
-                            1. Teacher Information
-                          </h3>
-                          <p className="text-xs text-slate-400">
-                            Required to register the batch certificate generation
-                          </p>
-                        </div>
-                      </div>
-                      {isInfoValid && (
-                        <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
-                          <CheckCircle2 className="w-3.5 h-3.5" /> Completed
-                        </span>
-                      )}
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
-                      <div className="space-y-1.5">
-                        <Label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
-                          <User className="w-3.5 h-3.5 text-blue-400" />
-                          Teacher Full Name
-                        </Label>
-                        <Input
-                          isRequired
-                          placeholder="e.g. Cikgu Azman"
-                          value={teacherName}
-                          onChange={(val: any) =>
-                            setTeacherName(
-                              typeof val === "string"
-                                ? val
-                                : val?.target?.value || ""
-                            )
-                          }
-                          className="bg-slate-950/70 border-slate-700 text-white placeholder-slate-500 text-sm focus:border-blue-500"
-                        />
-                      </div>
-
-                      <div className="space-y-1.5">
-                        <Label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
-                          <School className="w-3.5 h-3.5 text-blue-400" />
-                          School Name
-                        </Label>
-                        <Input
-                          isRequired
-                          placeholder="e.g. SMK Bandar Utama"
-                          value={schoolName}
-                          onChange={(val: any) =>
-                            setSchoolName(
-                              typeof val === "string"
-                                ? val
-                                : val?.target?.value || ""
-                            )
-                          }
-                          className="bg-slate-950/70 border-slate-700 text-white placeholder-slate-500 text-sm focus:border-blue-500"
-                        />
-                      </div>
-
-                      <div className="space-y-1.5">
-                        <Label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
-                          <Mail className="w-3.5 h-3.5 text-blue-400" />
-                          Email Address
-                        </Label>
-                        <Input
-                          isRequired
-                          type="email"
-                          placeholder="teacher@school.edu.my"
-                          value={teacherEmail}
-                          onChange={(val: any) =>
-                            setTeacherEmail(
-                              typeof val === "string"
-                                ? val
-                                : val?.target?.value || ""
-                            )
-                          }
-                          className="bg-slate-950/70 border-slate-700 text-white placeholder-slate-500 text-sm focus:border-blue-500"
-                        />
-                      </div>
-
-                      <div className="space-y-1.5">
-                        <Label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
-                          <Phone className="w-3.5 h-3.5 text-blue-400" />
-                          Phone Number
-                        </Label>
-                        <input
-                          required
-                          type="tel"
-                          inputMode="numeric"
-                          pattern="[0-9+\-\s]*"
-                          placeholder="e.g. 012-3456789"
-                          value={teacherPhone}
-                          onKeyDown={handleNumericKeyDown}
-                          onChange={(e) => setTeacherPhone(e.target.value)}
-                          className="w-full border border-slate-700 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all bg-slate-950/70 text-white placeholder-slate-500"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Upload Area Card */}
-                <div className="p-6 rounded-2xl bg-slate-900/60 border border-slate-800 space-y-4 shadow-sm">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center">
-                      <FileUp className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <h3 className="text-sm font-bold text-white uppercase tracking-wider">
-                        2. Upload Student Spreadsheet
-                      </h3>
-                      <p className="text-xs text-slate-400">
-                        Upload your file (.xlsx, .xls, .csv) with student records
-                      </p>
-                    </div>
-                  </div>
-
-                  {isInfoValid ? (
-                    <CertificateUploadArea
-                      templateConfig={templateConfig}
-                      onFileUpload={handleFileUpload}
-                      eventTitle={eventTitle}
-                    />
-                  ) : (
-                    <div className="p-8 bg-slate-950/40 border-2 border-dashed border-slate-800 rounded-2xl text-center text-slate-500 space-y-2">
-                      <FileUp className="w-10 h-10 mx-auto text-slate-600" />
-                      <p className="text-sm font-medium text-slate-400">
-                        Please fill in your teacher information above to unlock file upload.
-                      </p>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* RIGHT COLUMN (6 Cols): Quick User Manual & Live Dummy Table Preview */}
-              <div className="lg:col-span-6 space-y-6">
-                {/* Quick Step Manual Card */}
-                <div className="p-6 rounded-2xl bg-gradient-to-br from-slate-900/90 via-blue-950/30 to-indigo-950/40 border border-blue-500/20 space-y-4 shadow-sm">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center shadow-md shadow-blue-500/20">
-                        <BookOpen className="w-4 h-4" />
+              {/* Teacher Profile Information */}
+              {isPublicMode && (
+                <div className="lg:col-span-6 p-6 sm:p-8 rounded-3xl bg-slate-900/60 border border-slate-800 space-y-5 shadow-sm">
+                  <div className="flex items-center justify-between pb-4 border-b border-slate-800">
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center">
+                        <User className="w-4 h-4" />
                       </div>
                       <div>
-                        <h3 className="text-sm font-bold text-white">
-                          Quick User Manual: How to Submit
-                        </h3>
+                        <h4 className="text-sm font-bold text-white uppercase tracking-wider">
+                          1. Teacher Information
+                        </h4>
                         <p className="text-xs text-slate-400">
-                          Follow these 3 easy steps for error-free certificates
+                          Enter your details for certificate records
                         </p>
                       </div>
                     </div>
+
+                    {isInfoValid && (
+                      <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-full border border-emerald-500/20">
+                        <CheckCircle2 className="w-3.5 h-3.5" /> Complete
+                      </span>
+                    )}
                   </div>
 
-                  {/* 3 Step Flow */}
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-                    <div className="p-3 rounded-xl bg-slate-900/80 border border-slate-800 space-y-1">
-                      <div className="flex items-center gap-1.5 font-bold text-blue-400">
-                        <span className="w-4 h-4 rounded-full bg-blue-500/20 text-blue-400 flex items-center justify-center text-[10px]">
-                          1
-                        </span>
-                        <span>Get Template</span>
-                      </div>
-                      <p className="text-[11px] text-slate-400">
-                        Download the ready-to-use sample Excel file.
-                      </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
+                        <User className="w-3.5 h-3.5 text-blue-400" />
+                        Full Name
+                      </Label>
+                      <Input
+                        isRequired
+                        placeholder="e.g. Cikgu Azman"
+                        value={teacherName}
+                        onChange={(val: any) =>
+                          setTeacherName(
+                            typeof val === "string"
+                              ? val
+                              : val?.target?.value || ""
+                          )
+                        }
+                        className="bg-slate-950/70 border-slate-700 text-white placeholder-slate-500 text-sm focus:border-blue-500 rounded-xl"
+                      />
                     </div>
 
-                    <div className="p-3 rounded-xl bg-slate-900/80 border border-slate-800 space-y-1">
-                      <div className="flex items-center gap-1.5 font-bold text-indigo-400">
-                        <span className="w-4 h-4 rounded-full bg-indigo-500/20 text-indigo-400 flex items-center justify-center text-[10px]">
-                          2
-                        </span>
-                        <span>Paste Students</span>
-                      </div>
-                      <p className="text-[11px] text-slate-400">
-                        1 row per student. Row 1 has column titles.
-                      </p>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
+                        <School className="w-3.5 h-3.5 text-blue-400" />
+                        School Name
+                      </Label>
+                      <Input
+                        isRequired
+                        placeholder="e.g. SMK Bandar Utama"
+                        value={schoolName}
+                        onChange={(val: any) =>
+                          setSchoolName(
+                            typeof val === "string"
+                              ? val
+                              : val?.target?.value || ""
+                          )
+                        }
+                        className="bg-slate-950/70 border-slate-700 text-white placeholder-slate-500 text-sm focus:border-blue-500 rounded-xl"
+                      />
                     </div>
 
-                    <div className="p-3 rounded-xl bg-slate-900/80 border border-slate-800 space-y-1">
-                      <div className="flex items-center gap-1.5 font-bold text-purple-400">
-                        <span className="w-4 h-4 rounded-full bg-purple-500/20 text-purple-400 flex items-center justify-center text-[10px]">
-                          3
-                        </span>
-                        <span>Instant Batch</span>
-                      </div>
-                      <p className="text-[11px] text-slate-400">
-                        Map headers & download all certificates in ZIP.
-                      </p>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
+                        <Mail className="w-3.5 h-3.5 text-blue-400" />
+                        Email Address
+                      </Label>
+                      <Input
+                        isRequired
+                        type="email"
+                        placeholder="teacher@school.edu.my"
+                        value={teacherEmail}
+                        onChange={(val: any) =>
+                          setTeacherEmail(
+                            typeof val === "string"
+                              ? val
+                              : val?.target?.value || ""
+                          )
+                        }
+                        className="bg-slate-950/70 border-slate-700 text-white placeholder-slate-500 text-sm focus:border-blue-500 rounded-xl"
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
+                        <Phone className="w-3.5 h-3.5 text-blue-400" />
+                        Phone Number
+                      </Label>
+                      <input
+                        required
+                        type="tel"
+                        inputMode="numeric"
+                        pattern="[0-9+\-\s]*"
+                        placeholder="e.g. 012-3456789"
+                        value={teacherPhone}
+                        onKeyDown={handleNumericKeyDown}
+                        onChange={(e) => setTeacherPhone(e.target.value)}
+                        className="w-full border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all bg-slate-950/70 text-white placeholder-slate-500"
+                      />
                     </div>
                   </div>
                 </div>
+              )}
 
-                {/* Embedded Live Dummy Spreadsheet Table Card */}
-                <div className="p-6 rounded-2xl bg-slate-900/60 border border-slate-800 space-y-4 shadow-sm">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <div className="flex items-center gap-2">
-                      <Table className="w-4 h-4 text-emerald-400" />
-                      <h4 className="text-sm font-bold text-white">
-                        Sample Excel Structure (Live Preview)
-                      </h4>
+              {/* Upload Student File Area */}
+              <div
+                className={`${
+                  isPublicMode ? "lg:col-span-6" : "lg:col-span-12"
+                } p-6 sm:p-8 rounded-3xl bg-slate-900/60 border border-slate-800 space-y-5 shadow-sm`}
+              >
+                <div className="flex items-center justify-between pb-4 border-b border-slate-800">
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center">
+                      <FileUp className="w-4 h-4" />
                     </div>
+                    <div>
+                      <h4 className="text-sm font-bold text-white uppercase tracking-wider">
+                        2. Upload Student List (.xlsx / .csv)
+                      </h4>
+                      <p className="text-xs text-slate-400">
+                        Max 6,000 students per batch
+                      </p>
+                    </div>
+                  </div>
 
+                  <div className="flex items-center gap-2">
                     <button
                       type="button"
                       onClick={() => downloadSampleExcel(templateConfig, eventTitle)}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/30 text-xs font-semibold transition-colors cursor-pointer"
+                      className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 border border-emerald-500/30 text-xs font-semibold transition-colors cursor-pointer"
                     >
                       <Download className="w-3.5 h-3.5" />
-                      Download This Template (.xlsx)
-                    </button>
-                  </div>
-
-                  <p className="text-xs text-slate-400">
-                    Your uploaded spreadsheet should match this structure with columns corresponding to template fields:
-                  </p>
-
-                  {/* Table rendering */}
-                  <div className="border border-slate-800 rounded-xl overflow-hidden shadow-inner bg-slate-950">
-                    <div className="overflow-x-auto max-h-[260px]">
-                      <table className="w-full text-left text-xs border-collapse font-mono">
-                        <thead>
-                          <tr className="bg-blue-600 text-white font-semibold uppercase text-[11px] tracking-wider">
-                            <th className="py-2.5 px-3 text-center border-r border-blue-500 w-10">
-                              #
-                            </th>
-                            {sampleHeaders.map((h, i) => (
-                              <th
-                                key={i}
-                                className="py-2.5 px-3.5 border-r border-blue-500 last:border-r-0 whitespace-nowrap"
-                              >
-                                {h}
-                              </th>
-                            ))}
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-800 text-[11px] text-slate-300">
-                          {sampleRows.map((row, rowIdx) => (
-                            <tr
-                              key={rowIdx}
-                              className="hover:bg-slate-900/90 transition-colors"
-                            >
-                              <td className="py-2 px-3 text-center text-slate-500 bg-slate-900/60 font-sans">
-                                {rowIdx + 1}
-                              </td>
-                              {sampleHeaders.map((h, colIdx) => (
-                                <td
-                                  key={colIdx}
-                                  className="py-2 px-3.5 whitespace-nowrap"
-                                >
-                                  {row[h] || "-"}
-                                </td>
-                              ))}
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between text-[11px] text-slate-400 pt-1">
-                    <span className="flex items-center gap-1">
-                      <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-                      Clean formatting • No merged cells
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => setIsGuideOpen(true)}
-                      className="text-blue-400 hover:text-blue-300 underline underline-offset-2 cursor-pointer"
-                    >
-                      More format rules & tips →
+                      Sample Excel (.xlsx)
                     </button>
                   </div>
                 </div>
+
+                {isInfoValid ? (
+                  <CertificateUploadArea
+                    templateConfig={templateConfig}
+                    onFileUpload={handleFileUpload}
+                    eventTitle={eventTitle}
+                  />
+                ) : (
+                  <div className="p-10 bg-slate-950/40 border-2 border-dashed border-slate-800 rounded-2xl text-center text-slate-500 space-y-2">
+                    <FileUp className="w-10 h-10 mx-auto text-slate-600" />
+                    <p className="text-sm font-medium text-slate-400">
+                      Please complete your Teacher Information on the left to unlock file upload.
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
 
-            {/* Guide Modal Trigger */}
+            {/* Guide Pop-Out Modal */}
             <BulkSubmissionGuideModal
               isOpen={isGuideOpen}
               onClose={() => setIsGuideOpen(false)}
