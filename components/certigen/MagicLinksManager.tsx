@@ -483,11 +483,41 @@ export default function MagicLinksManager({ eventId, certificateType = "student"
           <div className="flex items-start gap-6">
             <div className="flex-1">
               <Label className="mb-2 block">Upload Teacher List (XLSX or CSV)</Label>
-              <div className="flex items-center gap-4">
+              <div className="flex flex-wrap items-center gap-3">
                 <Button color="secondary" onClick={() => fileInputRef.current?.click()}>
                   <FileSpreadsheet className="w-4 h-4 mr-2" />
                   Select XLSX / CSV File
                 </Button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    import("xlsx").then((XLSX) => {
+                      const sampleData = [
+                        { "Teacher Email": "azman@smkbu.edu.my", "Teacher Name": "Cikgu Azman", "School Name": "SMK Bandar Utama", "State": "Selangor", "Phone": "012-3456789" },
+                        { "Teacher Email": "faridah@sktm.edu.my", "Teacher Name": "Cikgu Faridah", "School Name": "SK Taman Melawati", "State": "Kuala Lumpur", "Phone": "013-9876543" },
+                        { "Teacher Email": "lee.wl@smjkch.edu.my", "Teacher Name": "Mr. Lee Wei Lun", "School Name": "SMJK Chung Hwa", "State": "Pulau Pinang", "Phone": "016-5551234" },
+                      ];
+                      const ws = XLSX.utils.json_to_sheet(sampleData);
+                      ws["!cols"] = [{ wch: 25 }, { wch: 20 }, { wch: 25 }, { wch: 15 }, { wch: 15 }];
+                      const wb = XLSX.utils.book_new();
+                      XLSX.utils.book_append_sheet(wb, ws, "Teachers");
+                      const wbout = XLSX.write(wb, { bookType: "xlsx", type: "array" });
+                      const blob = new Blob([wbout], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement("a");
+                      a.href = url;
+                      a.download = "sample_teachers_list.xlsx";
+                      document.body.appendChild(a);
+                      a.click();
+                      document.body.removeChild(a);
+                      URL.revokeObjectURL(url);
+                    });
+                  }}
+                  className="inline-flex items-center gap-1 px-3 py-2 text-xs font-semibold text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors shadow-2xs cursor-pointer"
+                >
+                  <Download className="w-3.5 h-3.5 text-gray-500" />
+                  Download Sample Template (.xlsx)
+                </button>
                 <input 
                   type="file" 
                   accept=".csv, .xlsx, .xls" 
@@ -502,7 +532,7 @@ export default function MagicLinksManager({ eventId, certificateType = "student"
                 )}
               </div>
               <p className="text-xs text-gray-500 mt-2">
-                File must include an <code className="bg-gray-100 px-1 py-0.5 rounded">email</code> column. Other columns will be used to pre-fill details!
+                File must include an <code className="bg-gray-100 px-1 py-0.5 rounded">email</code> column. Other columns (e.g. name, school, state, phone) will be used to pre-fill details!
               </p>
               {bulkSummary && (
                 <div className="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200 space-y-2">

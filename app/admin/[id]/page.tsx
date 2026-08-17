@@ -193,6 +193,7 @@ export default function EventHubPage() {
             adminEmail={profile?.email || "admin@example.com"}
             templateUrl={event.templateUrl || ""}
             templateConfig={event.templateConfig || []}
+            eventTitle={event.title}
           />
         )}
       </div>

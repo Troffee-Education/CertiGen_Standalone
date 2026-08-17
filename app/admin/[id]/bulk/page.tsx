@@ -73,6 +73,7 @@ export default function BulkGeneratePage() {
         adminEmail={profile?.email || "admin@example.com"}
         templateUrl={event.templateUrl || ""}
         templateConfig={event.templateConfig || []}
+        eventTitle={event.title}
       />
     </div>
   );

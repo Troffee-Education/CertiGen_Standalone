@@ -98,6 +98,7 @@ export default async function PublicCertiGenPage({
         adminEmail={magicLink?.teacherEmail || ""}
         templateUrl={eventData.templateUrl}
         templateConfig={eventData.templateConfig}
+        eventTitle={eventData.title}
       />
     </div>
   );
